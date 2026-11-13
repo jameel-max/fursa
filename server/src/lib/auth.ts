@@ -83,6 +83,20 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
   }
 }
 
+export async function optionalAuth(req: Request, _res: Response, next: NextFunction) {
+  const token = extractTokenFromHeader(req);
+  if (token) {
+    try {
+      const payload = verifyToken(token);
+      const user = await findUserById(payload.sub);
+      if (user) req.user = user;
+    } catch {
+      // invalid token — continue as guest
+    }
+  }
+  return next();
+}
+
 export async function requireUser(req: Request, _res: Response, next: NextFunction) {
   if (!req.user) {
     const err = new Error('AUTH_REQUIRED') as Error & { statusCode?: number; code?: string };

@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useFavorites } from '../context/FavoritesContext';
 
 const SORT_OPTIONS = [
+  { value: 'rating', label: 'الأعلى تقييماً' },
   { value: 'newest', label: 'الأحدث أولاً' },
   { value: 'price_low', label: 'السعر: من الأقل' },
   { value: 'price_high', label: 'السعر: من الأعلى' },
@@ -31,7 +32,7 @@ export function MarketPage() {
     governorateId: searchParams.get('governorateId') ?? '',
     minPrice: searchParams.get('minPrice') ?? '',
     maxPrice: searchParams.get('maxPrice') ?? '',
-    sort: searchParams.get('sort') ?? 'newest',
+    sort: searchParams.get('sort') ?? 'rating',
   });
 
   const [data, setData] = useState<ListingList | null>(null);
@@ -50,7 +51,7 @@ export function MarketPage() {
       governorateId: searchParams.get('governorateId') ?? '',
       minPrice: searchParams.get('minPrice') ?? '',
       maxPrice: searchParams.get('maxPrice') ?? '',
-      sort: searchParams.get('sort') ?? 'newest',
+      sort: searchParams.get('sort') ?? 'rating',
     });
   }, [searchParams]);
 
@@ -90,7 +91,7 @@ export function MarketPage() {
     if (draft.governorateId) params.set('governorateId', draft.governorateId);
     if (draft.minPrice) params.set('minPrice', draft.minPrice);
     if (draft.maxPrice) params.set('maxPrice', draft.maxPrice);
-    if (draft.sort && draft.sort !== 'newest') params.set('sort', draft.sort);
+    if (draft.sort && draft.sort !== 'rating') params.set('sort', draft.sort);
     setSearchParams(params);
   };
 
@@ -102,7 +103,7 @@ export function MarketPage() {
       governorateId: '',
       minPrice: '',
       maxPrice: '',
-      sort: 'newest',
+      sort: 'rating',
     });
     setSearchParams(new URLSearchParams());
   };

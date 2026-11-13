@@ -4,6 +4,7 @@ import { validate } from '../../lib/validate';
 import { z } from 'zod';
 import { createListingSchema, updateListingSchema, listingStatusSchema, offerSchema, offerStatusSchema } from './listings.schemas';
 import { canPublish, getEffectiveSubscription } from '../subscriptions/subscriptions.service';
+import { getMyReviewForListing, getRatingSummary, type ReviewRecord } from '../reviews/reviews.service';
 
 export interface ListingFilters {
   listingType?: 'offer' | 'request';
@@ -14,7 +15,7 @@ export interface ListingFilters {
   maxPrice?: number;
   minQuantity?: number;
   status?: string;
-  sort?: 'newest' | 'price_low' | 'price_high' | 'quantity';
+  sort?: 'newest' | 'price_low' | 'price_high' | 'quantity' | 'rating';
   search?: string;
   page?: number;
   limit?: number;
@@ -37,6 +38,8 @@ export interface ListingOwner {
   area: string | null;
   specialties: Array<{ id: number; name: string; customSpecialty: string | null }>;
   contactPreferences: { showPhone: number; whatsappEnabled: number; internalMessagesEnabled: number };
+  ratingAvg: number;
+  ratingCount: number;
 }
 
 export interface ListingDetail {
@@ -59,6 +62,7 @@ export interface ListingDetail {
   images: ListingImage[];
   owner: ListingOwner | null;
   offerCount: number;
+  myReview: ReviewRecord | null;
 }
 
 function toUnixSeconds(value: unknown): number {
@@ -89,6 +93,7 @@ async function buildOwner(listingUserId: number) {
     'SELECT show_phone, whatsapp_enabled, internal_messages_enabled FROM contact_preferences WHERE user_id = ?',
     [listingUserId],
   );
+  const rating = await getRatingSummary(listingUserId);
   return {
     id: owner.id,
     fullName: owner.full_name,
@@ -102,6 +107,8 @@ async function buildOwner(listingUserId: number) {
     contactPreferences: contactPrefs
       ? { showPhone: contactPrefs.show_phone, whatsappEnabled: contactPrefs.whatsapp_enabled, internalMessagesEnabled: contactPrefs.internal_messages_enabled }
       : { showPhone: 0, whatsappEnabled: 0, internalMessagesEnabled: 1 },
+    ratingAvg: rating.average,
+    ratingCount: rating.count,
   };
 }
 
@@ -163,7 +170,9 @@ export async function listListings(filters: ListingFilters) {
         ? 'l.price DESC'
         : filters.sort === 'quantity'
           ? 'l.quantity DESC'
-          : 'l.created_at DESC';
+          : filters.sort === 'newest'
+            ? 'l.created_at DESC'
+            : 'COALESCE(rv.rating_avg, 0) DESC, COALESCE(rv.rating_count, 0) DESC, l.created_at DESC';
 
   const rows = await query<{
     id: number;
@@ -184,7 +193,13 @@ export async function listListings(filters: ListingFilters) {
     updated_at: number;
   }>(
     `SELECT l.id, l.user_id, l.listing_type, l.title, l.category_id, l.description, l.quantity, l.unit_id, l.price, l.price_type, l.governorate_id, l.area, l.status, l.expires_at, l.created_at, l.updated_at
-     FROM listings l JOIN users u ON u.id = l.user_id
+     FROM listings l
+     JOIN users u ON u.id = l.user_id
+     LEFT JOIN (
+       SELECT reviewee_id, AVG(rating) AS rating_avg, COUNT(*) AS rating_count
+       FROM reviews
+       GROUP BY reviewee_id
+     ) rv ON rv.reviewee_id = u.id
      WHERE ${whereClause}
      ORDER BY ${orderBy}
      LIMIT ? OFFSET ?`,
@@ -216,6 +231,7 @@ export async function listListings(filters: ListingFilters) {
       images,
       owner,
       offerCount,
+      myReview: null,
     });
   }
 
@@ -246,6 +262,7 @@ export async function getListingById(id: number, viewerId: number | undefined) {
   const images = await query<ListingImage>('SELECT id, image_url AS imageUrl, sort_order AS sortOrder FROM listing_images WHERE listing_id = ? ORDER BY sort_order ASC', [id]);
   const owner = await buildOwner(listing.user_id);
   const offerCount = Number(await query<{ total: number }>('SELECT COUNT(*) AS total FROM offers WHERE listing_id = ?', [id])[0]?.total ?? 0);
+  const myReview = viewerId ? await getMyReviewForListing(viewerId, id) : null;
 
   const detail: ListingDetail = {
     id: listing.id,
@@ -267,6 +284,7 @@ export async function getListingById(id: number, viewerId: number | undefined) {
     images,
     owner,
     offerCount,
+    myReview,
   };
   return detail;
 }
@@ -321,6 +339,7 @@ export async function listMyListings(userId: number, status: string) {
       images,
       owner,
       offerCount,
+      myReview: null,
     });
   }
   return items;

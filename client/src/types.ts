@@ -56,6 +56,8 @@ export interface ListingOwner {
   area: string | null;
   specialties: UserSpecialty[];
   contactPreferences: ContactPreferences;
+  ratingAvg: number;
+  ratingCount: number;
 }
 
 export interface Listing {
@@ -78,6 +80,25 @@ export interface Listing {
   images: ListingImage[];
   owner: ListingOwner | null;
   offerCount: number;
+  myReview?: Review | null;
+}
+
+export interface Review {
+  id: number;
+  listingId: number;
+  reviewerId: number;
+  revieweeId: number;
+  rating: number;
+  comment: string | null;
+  createdAt: number;
+  updatedAt: number;
+  reviewerName?: string;
+  listingTitle?: string;
+}
+
+export interface ReviewList {
+  summary: { average: number; count: number };
+  items: Review[];
 }
 
 export interface ListingList {

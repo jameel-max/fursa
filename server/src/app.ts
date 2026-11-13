@@ -17,6 +17,7 @@ import { messagesRouter } from './modules/messages/messages.routes';
 import { notificationsRouter } from './modules/notifications/notifications.routes';
 import { favoritesRouter } from './modules/favorites/favorites.routes';
 import { catalogRouter } from './modules/catalog/catalog.routes';
+import { reviewsRouter } from './modules/reviews/reviews.routes';
 import { adminRouter } from './modules/admin/admin.routes';
 
 export function createApp(): Express {
@@ -41,6 +42,7 @@ export function createApp(): Express {
   app.use('/api/notifications', notificationsRouter);
   app.use('/api/favorites', favoritesRouter);
   app.use('/api/catalog', catalogRouter);
+  app.use('/api/reviews', reviewsRouter);
   app.use('/api/admin', adminRouter);
 
   app.use('/api/uploads', (req, res) => {

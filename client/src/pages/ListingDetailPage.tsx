@@ -14,6 +14,7 @@ import {
   Share2,
   ShieldCheck,
   ShoppingBasket,
+  Star,
   Tag,
 } from 'lucide-react';
 import { api } from '../lib/api';
@@ -25,6 +26,7 @@ import { useFavorites } from '../context/FavoritesContext';
 import { useToast } from '../context/ToastContext';
 import { ListingImage } from '../components/ListingImage';
 import { ListingCard } from '../components/ListingCard';
+import { ReviewsCard } from '../components/ReviewsCard';
 import { Button, buttonClass } from '../components/ui/Button';
 import { Alert, ErrorState, LoadingBlock } from '../components/ui/Feedback';
 import { Avatar, Badge, Card, SectionHead } from '../components/ui/Surfaces';
@@ -136,6 +138,15 @@ export function ListingDetailPage() {
       showToast('تم نسخ رابط الإعلان.');
     } catch {
       showToast('تعذّر مشاركة الرابط.', 'error');
+    }
+  };
+
+  const reloadListing = async () => {
+    try {
+      const data = await api<Listing>(`/listings/${listingId}`);
+      setListing(data);
+    } catch {
+      // keep current listing on refresh failure
     }
   };
 
@@ -364,6 +375,8 @@ export function ListingDetailPage() {
               )}
             </Card>
           ) : null}
+
+          <ReviewsCard listing={listing} onUpdated={() => void reloadListing()} />
         </div>
 
         <aside className="stack">
@@ -387,6 +400,13 @@ export function ListingDetailPage() {
                 <div className="row small muted mt-1" style={{ gap: '0.35rem' }}>
                   <BadgeCheck size={14} /> حساب موثّق
                 </div>
+                {listing.owner && listing.owner.ratingCount > 0 ? (
+                  <div className="row small mt-1" style={{ gap: '0.3rem', color: 'var(--gold, #b8860b)' }}>
+                    <Star size={14} fill="currentColor" />
+                    <strong>{listing.owner.ratingAvg}</strong>
+                    <span className="muted">({listing.owner.ratingCount} تقييم)</span>
+                  </div>
+                ) : null}
               </div>
             </div>
 

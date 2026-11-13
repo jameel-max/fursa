@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Heart, MapPin, Package } from 'lucide-react';
+import { Heart, MapPin, Package, Star } from 'lucide-react';
 import type { Listing } from '../types';
 import { formatPrice, formatQuantity, listingTypeLabel, timeAgo } from '../lib/format';
 import { ListingImage } from './ListingImage';
@@ -60,6 +60,11 @@ export function ListingCard({
           <span>
             <Package size={14} /> {formatQuantity(listing.quantity, unitName)}
           </span>
+          {listing.owner && listing.owner.ratingCount > 0 ? (
+            <span className="rating-badge" title={`${listing.owner.ratingCount} تقييم`}>
+              <Star size={13} fill="currentColor" /> {listing.owner.ratingAvg} ({listing.owner.ratingCount})
+            </span>
+          ) : null}
         </div>
         <div className="listing-price">
           <div>
