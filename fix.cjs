@@ -1,0 +1,1 @@
+\"const fs=require('fs');let d=fs.readFileSync('server/src/demo-seed.ts','utf8');let o='¬å¢ Offer';let n='¬å¢ Ÿé¦à©íŸ¢';d=d.replace(o,n);fs.writeFileSync('server/src/demo-seed.ts',d);console.log('done');\" 

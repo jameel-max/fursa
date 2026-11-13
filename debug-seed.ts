@@ -1,0 +1,10 @@
+import { config } from './server/src/config.js';
+console.log('DB URL set:', Boolean(config.databaseUrl));
+import { execSql, loadSchemaSql } from './server/src/db.js';
+const schema = loadSchemaSql();
+console.log('schema length', schema.length);
+execSql(schema);
+console.log('schema done');
+import { seed } from './server/src/seed.js';
+await seed();
+console.log('seed done');

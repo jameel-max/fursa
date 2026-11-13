@@ -1,0 +1,81 @@
+
+> mostaqel@1.0.0 typecheck
+> tsc -p server/tsconfig.json --noEmit && tsc -p client/tsconfig.json --noEmit
+
+server/src/demo-seed.ts(245,7): error TS2365: Operator '+' cannot be applied to types 'Promise<number>' and 'number'.
+server/src/demo-seed.ts(252,5): error TS1308: 'await' expressions are only allowed within async functions and at the top levels of modules.
+server/src/demo-seed.ts(266,5): error TS2322: Type 'Promise<number>' is not assignable to type 'number'.
+server/src/demo-seed.ts(266,44): error TS2345: Argument of type 'Promise<string>' is not assignable to parameter of type 'string'.
+server/src/demo-seed.ts(272,13): error TS2322: Type 'Promise<number | null>' is not assignable to type 'number'.
+server/src/demo-seed.ts(326,7): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+server/src/demo-seed.ts(332,7): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+server/src/demo-seed.ts(346,131): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+server/src/demo-seed.ts(350,34): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+server/src/modules/auth/auth.service.ts(88,5): error TS1308: 'await' expressions are only allowed within async functions and at the top levels of modules.
+server/src/modules/auth/auth.service.ts(92,5): error TS1308: 'await' expressions are only allowed within async functions and at the top levels of modules.
+server/src/modules/auth/auth.service.ts(103,12): error TS2739: Type 'Promise<AuthUser>' is missing the following properties from type 'AuthUser': id, fullName, phone, accountStatus, role
+server/src/modules/auth/auth.service.ts(103,18): error TS2322: Type 'Promise<string> | undefined' is not assignable to type 'string | undefined'.
+  Type 'Promise<string>' is not assignable to type 'string'.
+server/src/modules/auth/auth.service.ts(109,3): error TS2322: Type 'AuthUser | undefined' is not assignable to type 'AuthUser'.
+  Type 'undefined' is not assignable to type 'AuthUser'.
+server/src/modules/auth/auth.service.ts(114,14): error TS2339: Property 'ok' does not exist on type 'Promise<{ ok: boolean; error?: string | undefined; }>'.
+server/src/modules/auth/auth.service.ts(116,13): error TS2339: Property 'error' does not exist on type 'Promise<{ ok: boolean; error?: string | undefined; }>'.
+server/src/modules/auth/auth.service.ts(118,17): error TS2339: Property 'error' does not exist on type 'Promise<{ ok: boolean; error?: string | undefined; }>'.
+server/src/modules/auth/auth.service.ts(120,19): error TS2339: Property 'error' does not exist on type 'Promise<{ ok: boolean; error?: string | undefined; }>'.
+server/src/modules/auth/auth.service.ts(122,21): error TS2339: Property 'error' does not exist on type 'Promise<{ ok: boolean; error?: string | undefined; }>'.
+server/src/modules/auth/auth.service.ts(206,14): error TS2339: Property 'ok' does not exist on type 'Promise<{ ok: boolean; error?: string | undefined; }>'.
+server/src/modules/auth/auth.service.ts(208,13): error TS2339: Property 'error' does not exist on type 'Promise<{ ok: boolean; error?: string | undefined; }>'.
+server/src/modules/auth/auth.service.ts(210,17): error TS2339: Property 'error' does not exist on type 'Promise<{ ok: boolean; error?: string | undefined; }>'.
+server/src/modules/auth/auth.service.ts(212,19): error TS2339: Property 'error' does not exist on type 'Promise<{ ok: boolean; error?: string | undefined; }>'.
+server/src/modules/auth/auth.service.ts(214,21): error TS2339: Property 'error' does not exist on type 'Promise<{ ok: boolean; error?: string | undefined; }>'.
+server/src/modules/listings/listings.routes.ts(15,57): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type 'Promise<RequestHandler<ParamsDictionary, any, any, ParsedQs, Record<string, any>>>' is not assignable to parameter of type 'RequestHandlerParams<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/src/modules/listings/listings.routes.ts(17,44): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type 'Promise<RequestHandler<ParamsDictionary, any, any, ParsedQs, Record<string, any>>>' is not assignable to parameter of type 'RequestHandlerParams<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/src/modules/listings/listings.service.ts(213,7): error TS2322: Type 'Promise<number> | null' is not assignable to type 'number | null'.
+  Type 'Promise<number>' is not assignable to type 'number'.
+server/src/modules/listings/listings.service.ts(214,7): error TS2322: Type 'Promise<number>' is not assignable to type 'number'.
+server/src/modules/listings/listings.service.ts(215,7): error TS2322: Type 'Promise<number>' is not assignable to type 'number'.
+server/src/modules/listings/listings.service.ts(217,7): error TS2740: Type 'Promise<{ id: number; fullName: string; phone: string; accountStatus: string; role: string; businessName: string; governorateId: number; area: string; specialties: { id: number; name: string; customSpecialty: string | null; }[]; contactPreferences: { ...; }; } | null>' is missing the following properties from type 'ListingOwner': id, fullName, phone, accountStatus, and 6 more.
+server/src/modules/listings/listings.service.ts(264,5): error TS2322: Type 'Promise<number> | null' is not assignable to type 'number | null'.
+  Type 'Promise<number>' is not assignable to type 'number'.
+server/src/modules/listings/listings.service.ts(265,5): error TS2322: Type 'Promise<number>' is not assignable to type 'number'.
+server/src/modules/listings/listings.service.ts(266,5): error TS2322: Type 'Promise<number>' is not assignable to type 'number'.
+server/src/modules/listings/listings.service.ts(268,5): error TS2740: Type 'Promise<{ id: number; fullName: string; phone: string; accountStatus: string; role: string; businessName: string; governorateId: number; area: string; specialties: { id: number; name: string; customSpecialty: string | null; }[]; contactPreferences: { ...; }; } | null>' is missing the following properties from type 'ListingOwner': id, fullName, phone, accountStatus, and 6 more.
+server/src/modules/listings/listings.service.ts(318,7): error TS2322: Type 'Promise<number> | null' is not assignable to type 'number | null'.
+  Type 'Promise<number>' is not assignable to type 'number'.
+server/src/modules/listings/listings.service.ts(319,7): error TS2322: Type 'Promise<number>' is not assignable to type 'number'.
+server/src/modules/listings/listings.service.ts(320,7): error TS2322: Type 'Promise<number>' is not assignable to type 'number'.
+server/src/modules/listings/listings.service.ts(322,7): error TS2740: Type 'Promise<{ id: number; fullName: string; phone: string; accountStatus: string; role: string; businessName: string; governorateId: number; area: string; specialties: { id: number; name: string; customSpecialty: string | null; }[]; contactPreferences: { ...; }; } | null>' is missing the following properties from type 'ListingOwner': id, fullName, phone, accountStatus, and 6 more.
+server/src/modules/listings/listings.service.ts(332,11): error TS2339: Property 'allowed' does not exist on type 'Promise<{ allowed: boolean; subscription: Promise<EffectiveSubscription>; usage: Promise<{ usedPosts: number; remainingPosts: number; monthlyPostLimit: number; }>; }>'.
+server/src/modules/listings/listings.service.ts(332,20): error TS2339: Property 'subscription' does not exist on type 'Promise<{ allowed: boolean; subscription: Promise<EffectiveSubscription>; usage: Promise<{ usedPosts: number; remainingPosts: number; monthlyPostLimit: number; }>; }>'.
+server/src/modules/listings/listings.service.ts(332,34): error TS2339: Property 'usage' does not exist on type 'Promise<{ allowed: boolean; subscription: Promise<EffectiveSubscription>; usage: Promise<{ usedPosts: number; remainingPosts: number; monthlyPostLimit: number; }>; }>'.
+server/src/modules/listings/listings.service.ts(367,7): error TS1308: 'await' expressions are only allowed within async functions and at the top levels of modules.
+server/src/modules/listings/listings.service.ts(404,7): error TS1308: 'await' expressions are only allowed within async functions and at the top levels of modules.
+server/src/modules/messages/messages.service.ts(50,7): error TS2322: Type 'Promise<number> | null' is not assignable to type 'number | null'.
+  Type 'Promise<number>' is not assignable to type 'number'.
+server/src/modules/offers/offers.service.ts(111,5): error TS2322: Type 'Promise<number>' is not assignable to type 'number'.
+server/src/modules/offers/offers.service.ts(121,3): error TS2322: Type 'Promise<OfferRecord>[]' is not assignable to type 'OfferRecord[]'.
+  Type 'Promise<OfferRecord>' is missing the following properties from type 'OfferRecord': id, listingId, listingTitle, listingType, and 7 more.
+server/src/modules/offers/offers.service.ts(126,3): error TS2322: Type 'Promise<OfferRecord>[]' is not assignable to type 'OfferRecord[]'.
+  Type 'Promise<OfferRecord>' is missing the following properties from type 'OfferRecord': id, listingId, listingTitle, listingType, and 7 more.
+server/src/modules/subscriptions/subscriptions.service.ts(77,22): error TS2339: Property 'id' does not exist on type 'Promise<PlanRow | undefined>'.
+server/src/modules/subscriptions/subscriptions.service.ts(78,24): error TS2339: Property 'name' does not exist on type 'Promise<PlanRow | undefined>'.
+server/src/modules/subscriptions/subscriptions.service.ts(79,21): error TS2339: Property 'price' does not exist on type 'Promise<PlanRow | undefined>'.
+server/src/modules/subscriptions/subscriptions.service.ts(80,32): error TS2339: Property 'monthly_post_limit' does not exist on type 'Promise<PlanRow | undefined>'.
+server/src/modules/subscriptions/subscriptions.service.ts(99,64): error TS2339: Property 'monthlyPostLimit' does not exist on type 'Promise<EffectiveSubscription>'.
+server/src/modules/subscriptions/subscriptions.service.ts(100,27): error TS2339: Property 'remainingPosts' does not exist on type 'Promise<{ usedPosts: number; remainingPosts: number; monthlyPostLimit: number; }>'.
+server/src/modules/subscriptions/subscriptions.service.ts(117,31): error TS2339: Property 'id' does not exist on type 'Promise<EffectiveSubscription>'.
+server/src/modules/subscriptions/subscriptions.service.ts(117,53): error TS2339: Property 'id' does not exist on type 'Promise<EffectiveSubscription>'.
+server/src/modules/subscriptions/subscriptions.service.ts(117,101): error TS2339: Property 'monthlyPostLimit' does not exist on type 'Promise<EffectiveSubscription>'.
+server/src/modules/subscriptions/subscriptions.service.ts(134,19): error TS2339: Property 'planId' does not exist on type 'Promise<EffectiveSubscription>'.
+server/src/modules/subscriptions/subscriptions.service.ts(137,64): error TS2339: Property 'monthlyPostLimit' does not exist on type 'Promise<EffectiveSubscription>'.
+server/src/modules/subscriptions/subscriptions.service.ts(142,28): error TS2345: Argument of type 'Promise<PlanRow | undefined>' is not assignable to parameter of type 'PlanRow'.
+  Type 'Promise<PlanRow | undefined>' is missing the following properties from type 'PlanRow': id, name, price, monthly_post_limit, and 2 more.
+server/src/modules/subscriptions/subscriptions.service.ts(225,23): error TS2339: Property 'paymentId' does not exist on type 'Promise<{ paymentId: number; subscriptionId: number; }>'.
+server/src/modules/subscriptions/subscriptions.service.ts(226,28): error TS2339: Property 'subscriptionId' does not exist on type 'Promise<{ paymentId: number; subscriptionId: number; }>'.
+server/src/modules/subscriptions/subscriptions.service.ts(227,38): error TS2339: Property 'paymentId' does not exist on type 'Promise<{ paymentId: number; subscriptionId: number; }>'.
+server/src/modules/subscriptions/subscriptions.service.ts(240,50): error TS2339: Property 'name' does not exist on type 'Promise<PlanRow | undefined>'.
+server/src/modules/subscriptions/subscriptions.service.ts(246,47): error TS2339: Property 'name' does not exist on type 'Promise<PlanRow | undefined>'.

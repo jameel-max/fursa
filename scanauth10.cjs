@@ -1,0 +1,12 @@
+const fs=require('fs');
+const c=fs.readFileSync('server/src/modules/auth/auth.service.ts','utf8');
+const lines=c.split(/\r?\n/);
+console.log(54, JSON.stringify(lines[53]));
+console.log(100, JSON.stringify(lines[99]));
+console.log(107, JSON.stringify(lines[106]));
+console.log(136, JSON.stringify(lines[135]));
+console.log(166, JSON.stringify(lines[165]));
+console.log(174, JSON.stringify(lines[173]));
+console.log(219, JSON.stringify(lines[218]));
+console.log(231, JSON.stringify(lines[230]));
+console.log(235, JSON.stringify(lines[234]));
