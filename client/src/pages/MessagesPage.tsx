@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Inbox, MessageSquare, RefreshCw, Search, Send } from 'lucide-react';
+import { ArrowRight, Inbox, MessageSquare, RefreshCw, Search, Send } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -152,7 +152,7 @@ export function MessagesPage() {
           }
         />
       ) : (
-        <div className="messages-layout">
+        <div className={selectedId ? 'messages-layout has-selection' : 'messages-layout'}>
           <aside className="conv-list" aria-label="قائمة المحادثات">
             <div style={{ padding: '0.65rem' }}>
               <input
@@ -212,6 +212,9 @@ export function MessagesPage() {
             ) : (
               <>
                 <div className="thread-head">
+                  <Link to="/dashboard/messages" className="thread-back icon-btn" aria-label="رجوع إلى المحادثات">
+                    <ArrowRight size={18} />
+                  </Link>
                   <div className="row">
                     <Avatar name={selected?.otherUserName ?? 'مستخدم'} />
                     <div>

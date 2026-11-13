@@ -51,6 +51,14 @@ export function createApp(): Express {
     return res.status(404).json({ success: false, error: { code: 'FILE_NOT_FOUND', message: 'File not found' } });
   });
 
+  const clientDist = path.resolve(process.cwd(), 'client/dist');
+  if (fs.existsSync(clientDist)) {
+    app.use(express.static(clientDist));
+    app.get('*', (_req, res) => {
+      res.sendFile(path.join(clientDist, 'index.html'));
+    });
+  }
+
   app.use(notFoundHandler);
   app.use(errorHandler);
 

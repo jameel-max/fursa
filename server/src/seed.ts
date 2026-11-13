@@ -1,5 +1,6 @@
 import { query, queryOne, execute, execSql, loadSchemaSql, insertAndGetId } from './db';
 import { seedDemoData } from './demo-seed';
+import { hashPassword } from './lib/password';
 
 export async function seed() {
   const schema = loadSchemaSql();
@@ -101,6 +102,36 @@ export async function seed() {
   if (process.env.SEED_DEMO === 'true') {
     await seedDemoData();
   }
+
+  await ensureAdminUser();
+}
+
+async function ensureAdminUser() {
+  const phone = process.env.ADMIN_PHONE || '0790000000';
+  const password = process.env.ADMIN_PASSWORD || 'Admin1234';
+  const existing = await queryOne<{ id: number }>('SELECT id FROM users WHERE phone = ?', [phone]);
+  if (existing) return;
+
+  const now = Math.floor(Date.now() / 1000);
+  const hash = hashPassword(password);
+  await execute(
+    'INSERT INTO users (full_name, phone, password_hash, phone_verified_at, account_status, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    ['مدير منصة فُرصة', phone, hash, now, 'active', 'admin', now, now],
+  );
+  const id = Number((await queryOne<{ id: number }>('SELECT id FROM users WHERE phone = ?', [phone]))?.id);
+  const governorate = await queryOne<{ id: number }>('SELECT id FROM governorates WHERE name_ar = ?', ['عمان']);
+  await execute(
+    'INSERT INTO user_profiles (user_id, business_name, description, governorate_id, area, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [id, 'منصة فُرصة الزراعية', 'إدارة المنصة والتحقق من المحتوى.', governorate?.id ?? null, 'عمّان', now, now],
+  );
+  const specialty = await queryOne<{ id: number }>('SELECT id FROM specialties WHERE name = ?', ['شركة زراعية']);
+  if (specialty) {
+    await execute('INSERT INTO user_specialties (user_id, specialty_id, custom_specialty) VALUES (?, ?, NULL) ON CONFLICT DO NOTHING', [id, specialty.id]);
+  }
+  await execute(
+    'INSERT INTO contact_preferences (user_id, show_phone, whatsapp_enabled, internal_messages_enabled, updated_at) VALUES (?, 1, 1, 1, ?)',
+    [id, now],
+  );
 }
 
 export async function runSeed() {

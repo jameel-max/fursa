@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import type { SignOptions } from 'jsonwebtoken';
 import type { Request, Response, NextFunction } from 'express';
 import { getDb, queryOne } from '../db';
 import { config } from '../config';
@@ -20,7 +21,7 @@ export interface AuthUser {
 
 export function signToken(user: { id: number; phone: string; role: string }): string {
   const payload: TokenPayload = { sub: user.id, phone: user.phone, role: user.role };
-  return jwt.sign(payload, config.jwtSecret, { expiresIn: 60 * 60 * 24 * 7 });
+  return jwt.sign(payload, config.jwtSecret, { expiresIn: config.jwtExpiresIn as SignOptions['expiresIn'] });
 }
 
 export function verifyToken(token: string): TokenPayload {

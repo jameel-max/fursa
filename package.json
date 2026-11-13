@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "description": "Agricultural marketplace connecting farmers, traders and service providers",
   "scripts": {
     "dev:server": "tsx watch server/src/index.ts",
@@ -11,7 +14,7 @@
     "build:client": "vite build client",
     "build:server": "tsc -p server/tsconfig.json && node scripts/copy-assets.mjs",
     "build": "npm run build:client && npm run build:server",
-    "start": "node server/dist/index.js",
+    "start": "tsx server/src/index.ts",
     "db:seed": "tsx server/src/seed-cli.ts",
     "test": "node --import tsx --test-concurrency=1 --test \"tests/**/*.test.ts\"",
     "typecheck": "tsc -p server/tsconfig.json --noEmit && tsc -p client/tsconfig.json --noEmit"

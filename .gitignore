@@ -4,3 +4,4 @@ data/
 server/uploads/
 client/dist/
 tests/data/server/dist/
+server/dist/
