@@ -79,7 +79,7 @@ export function MessagesPage() {
       if (document.visibilityState !== 'visible') return;
       void loadConversations(true);
       if (selectedId) void loadMessages(selectedId, true);
-    }, 15000);
+    }, 4000);
     return () => window.clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);

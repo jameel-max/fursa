@@ -73,10 +73,12 @@ export function Header() {
       }
     };
     void load();
-    const timer = window.setInterval(load, 60000);
+    const timer = window.setInterval(load, 20000);
+    window.addEventListener('fursa:notifications', load);
     return () => {
       active = false;
       window.clearInterval(timer);
+      window.removeEventListener('fursa:notifications', load);
     };
   }, [user, location.pathname]);
 

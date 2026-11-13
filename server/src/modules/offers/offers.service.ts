@@ -2,6 +2,7 @@ import { getDb, query, queryOne, execute } from '../../db';
 import { badRequest, notFound } from '../../lib/ApiError';
 import { validate } from '../../lib/validate';
 import { offerSchema, offerStatusSchema } from '../listings/listings.schemas';
+import { sendPushToUser } from '../../lib/push';
 
 export interface OfferRecord {
   id: number;
@@ -38,6 +39,7 @@ async function pushNotification(userId: number, type: string, title: string, bod
     'INSERT INTO notifications (user_id, type, title, body, target_url, is_read, created_at) VALUES (?, ?, ?, ?, ?, 0, ?)',
     [userId, type, title, body, targetUrl, Math.floor(Date.now() / 1000)],
   );
+  void sendPushToUser(userId, { title, body, url: targetUrl, tag: `offer-${userId}` });
 }
 
 export async function createOffer(listingId: number, buyerUserId: number, input: unknown) {

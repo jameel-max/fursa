@@ -5,7 +5,12 @@ import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { FavoritesProvider } from './context/FavoritesContext';
+import { registerServiceWorker } from './lib/push';
+import { initSoundUnlock } from './lib/sound';
 import './styles/globals.css';
+
+void registerServiceWorker();
+initSoundUnlock();
 
 const container = document.getElementById('root');
 if (!container) {

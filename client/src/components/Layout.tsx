@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { Header } from './Header';
 import { Footer } from './Footer';
 import { MobileBottomNav } from './MobileBottomNav';
+import { RealtimeNotifier } from './RealtimeNotifier';
 
 function ScrollToTop() {
   const location = useLocation();
@@ -26,6 +27,7 @@ export function Layout() {
         تخطَّ إلى المحتوى الرئيسي
       </a>
       <ScrollToTop />
+      <RealtimeNotifier />
       <Header />
       <main id="main-content">
         <Outlet />

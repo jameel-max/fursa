@@ -1,5 +1,6 @@
 import { getDb, query, queryOne, execute } from '../../db';
 import { badRequest, notFound } from '../../lib/ApiError';
+import { sendPushToUser } from '../../lib/push';
 
 export interface ConversationSummary {
   id: number;
@@ -145,5 +146,11 @@ export async function sendMessage(conversationId: number, senderId: number, cont
       Math.floor(Date.now() / 1000),
     ],
   );
+  void sendPushToUser(otherUserId, {
+    title: `رسالة جديدة من ${sender?.full_name ?? 'مستخدم'}`,
+    body: trimmed.length > 120 ? `${trimmed.slice(0, 120)}…` : trimmed,
+    url: `/dashboard/messages/${conversationId}`,
+    tag: `message-${conversationId}`,
+  });
   return { id: messageId };
 }
