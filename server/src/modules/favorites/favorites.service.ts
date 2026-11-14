@@ -1,5 +1,6 @@
 import { query, queryOne, execute, insertAndGetId } from '../../db';
 import { badRequest, notFound } from '../../lib/ApiError';
+import { assertUserPermission } from '../../lib/permissions';
 
 export interface FavoriteItem {
   id: number;
@@ -46,6 +47,7 @@ export async function listFavorites(userId: number) {
 }
 
 export async function toggleFavorite(listingId: number, userId: number) {
+  await assertUserPermission(userId, 'favorites.use');
   const listing = await queryOne<{ id: number; user_id: number }>('SELECT id, user_id FROM listings WHERE id = ?', [listingId]);
   if (!listing) throw notFound('LISTING_NOT_FOUND', 'Listing not found');
   const existing = await queryOne<{ id: number }>('SELECT id FROM favorites WHERE user_id = ? AND listing_id = ?', [userId, listingId]);

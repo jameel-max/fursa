@@ -1,6 +1,7 @@
 import { getDb, query, queryOne, execute } from '../../db';
 import { badRequest, notFound } from '../../lib/ApiError';
 import { sendPushToUser } from '../../lib/push';
+import { assertUserPermission } from '../../lib/permissions';
 
 export interface ConversationSummary {
   id: number;
@@ -84,6 +85,7 @@ export async function getOrCreateConversation(userId: number, otherUserId: numbe
 }
 
 export async function startConversation(userId: number, input: unknown) {
+  await assertUserPermission(userId, 'messages.use');
   const recipientId = Number((input as { recipientId?: unknown })?.recipientId);
   if (!Number.isInteger(recipientId) || recipientId <= 0) {
     throw badRequest('INVALID_RECIPIENT', 'Please choose a valid recipient');
@@ -131,6 +133,7 @@ export async function listMessages(conversationId: number, userId: number) {
 }
 
 export async function sendMessage(conversationId: number, senderId: number, content: string) {
+  await assertUserPermission(senderId, 'messages.use');
   const trimmed = content.trim();
   if (trimmed.length < 1 || trimmed.length > 2000) {
     throw badRequest('MESSAGE_INVALID', 'Message must be between 1 and 2000 characters');

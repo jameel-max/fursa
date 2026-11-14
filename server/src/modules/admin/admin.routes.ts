@@ -17,6 +17,10 @@ import {
   listAdminSubscriptionsHandler,
   getAdminSettingsHandler,
   updateAdminSettingsHandler,
+  listAdminSpecialtiesHandler,
+  createAdminSpecialtyHandler,
+  updateAdminSpecialtyHandler,
+  setSpecialtyPermissionHandler,
 } from './admin.controller';
 
 export const adminRouter = Router();
@@ -38,6 +42,10 @@ adminRouter.get('/ads', listAdminAdsHandler);
 adminRouter.post('/ads', adImageUpload, createAdHandler);
 adminRouter.patch('/ads/:id', adImageUpload, updateAdHandler);
 adminRouter.delete('/ads/:id', deleteAdHandler);
+adminRouter.get('/specialties', listAdminSpecialtiesHandler);
+adminRouter.post('/specialties', adminLimiter, createAdminSpecialtyHandler);
+adminRouter.patch('/specialties/:id', adminLimiter, updateAdminSpecialtyHandler);
+adminRouter.patch('/specialties/:code/permissions', adminLimiter, setSpecialtyPermissionHandler);
 adminRouter.get('/settings', getAdminSettingsHandler);
 adminRouter.patch('/settings', adminLimiter, updateAdminSettingsHandler);
 

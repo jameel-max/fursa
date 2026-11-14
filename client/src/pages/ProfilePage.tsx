@@ -2,8 +2,18 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   BadgeCheck,
+  Briefcase,
   Building2,
   Eye,
+  Factory,
+  Package,
+  Shapes,
+  ShoppingBag,
+  Sprout,
+  Store,
+  Truck,
+  Warehouse,
+  Wrench,
   KeyRound,
   MapPin,
   MessageSquare,
@@ -24,6 +34,20 @@ import { Button, buttonClass } from '../components/ui/Button';
 import { Alert } from '../components/ui/Feedback';
 import { Input, Select, Switch, Textarea } from '../components/ui/Form';
 import { Avatar, Badge, Card, PageHeader } from '../components/ui/Surfaces';
+
+const SPECIALTY_ICONS: Record<string, typeof Sprout> = {
+  sprout: Sprout,
+  store: Store,
+  warehouse: Warehouse,
+  'shopping-bag': ShoppingBag,
+  factory: Factory,
+  truck: Truck,
+  package: Package,
+  wrench: Wrench,
+  building: Building2,
+  briefcase: Briefcase,
+  shapes: Shapes,
+};
 
 export function ProfilePage() {
   const { user, refreshUser } = useAuth();
@@ -67,6 +91,8 @@ export function ProfilePage() {
         .map((specialty) => specialty.id ?? specialty.customSpecialty ?? '')
         .filter((value): value is string | number => value !== ''),
     );
+    const otherSpec = user.specialties.find((sp) => sp.code === 'other');
+    if (otherSpec?.customSpecialty) setCustomSpecialty(otherSpec.customSpecialty);
     setShowPhone(Boolean(user.contactPreferences.showPhone));
     setWhatsappEnabled(Boolean(user.contactPreferences.whatsappEnabled));
     setInternalMessagesEnabled(Boolean(user.contactPreferences.internalMessagesEnabled));
@@ -81,13 +107,19 @@ export function ProfilePage() {
     );
   }
 
+  const otherSpecialty = catalogSpecialties.find((item) => item.code === 'other');
+  const otherSelected = otherSpecialty ? selectedSpecialties.includes(otherSpecialty.id) : false;
+
   const toggleSpecialty = (specialtyId: number) => {
     setSelectedSpecialties((current) => {
       if (current.includes(specialtyId)) return current.filter((item) => item !== specialtyId);
-      if (current.length >= 3) return current;
+      if (current.length >= 3) {
+        setProfileFieldErrors((errs) => ({ ...errs, specialties: 'الحد الأقصى 3 تخصصات — أزل تخصصاً أولاً.' }));
+        return current;
+      }
+      setProfileFieldErrors((errs) => ({ ...errs, specialties: '' }));
       return [...current, specialtyId];
     });
-    setProfileFieldErrors((current) => ({ ...current, specialties: '' }));
   };
 
   const addCustomSpecialty = () => {
@@ -110,6 +142,10 @@ export function ProfilePage() {
       setProfileFieldErrors({ fullName: 'الاسم الكامل يجب أن يكون 3 أحرف على الأقل.' });
       return;
     }
+    if (otherSelected && customSpecialty.trim().length < 2) {
+      setProfileFieldErrors({ customSpecialty: 'اكتب المجال الذي تعمل فيه.' });
+      return;
+    }
     setProfileFieldErrors({});
     setSavingProfile(true);
     try {
@@ -122,6 +158,7 @@ export function ProfilePage() {
           area: area.trim(),
           governorateId: governorateId ? Number(governorateId) : undefined,
           specialties: selectedSpecialties,
+          customSpecialty: otherSelected ? customSpecialty.trim() : undefined,
         },
       });
       await refreshUser();
@@ -305,56 +342,98 @@ export function ProfilePage() {
           />
 
           <div className="field">
-            <span className="label">التخصصات (حتى 3)</span>
-            <div className="chip-row">
-              {catalogSpecialties.map((specialty) => {
-                const active = selectedSpecialties.includes(specialty.id);
-                return (
-                  <button
-                    key={specialty.id}
-                    type="button"
-                    className={active ? 'chip active' : 'chip'}
-                    aria-pressed={active}
-                    onClick={() => toggleSpecialty(specialty.id)}
-                  >
-                    {specialty.name}
-                  </button>
-                );
-              })}
-              {customSpecialties.map((value) => (
-                <span key={value} className="chip active">
-                  {value}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedSpecialties((current) => current.filter((item) => item !== value))}
-                    aria-label={`إزالة ${value}`}
-                    style={{ border: 0, background: 'transparent', padding: 0, color: 'inherit', display: 'inline-flex', marginInlineStart: '0.25rem' }}
-                  >
-                    <X size={13} />
-                  </button>
-                </span>
-              ))}
+            <span className="label">التخصصات ونوع الحساب</span>
+            <p className="field-hint" style={{ marginTop: 0 }}>
+              تخصصاتك تحدد أنواع الإعلانات التي يمكنك نشرها — يمكنك جمع حتى 3 تخصصات.
+            </p>
+            <div className="spec-counter" aria-live="polite">
+              {selectedSpecialties.length} / 3 تخصصات مختارة
             </div>
+            <div className="spec-grid">
+              {catalogSpecialties
+                .filter((specialty) => specialty.isActive)
+                .map((specialty) => {
+                  const active = selectedSpecialties.includes(specialty.id);
+                  const Icon = SPECIALTY_ICONS[specialty.icon ?? ''] ?? Shapes;
+                  const disabled = !active && selectedSpecialties.length >= 3;
+                  return (
+                    <button
+                      key={specialty.id}
+                      type="button"
+                      className={active ? 'spec-card active' : 'spec-card'}
+                      aria-pressed={active}
+                      disabled={disabled}
+                      onClick={() => toggleSpecialty(specialty.id)}
+                    >
+                      <span className="spec-card-icon">
+                        <Icon size={22} />
+                      </span>
+                      <strong>{specialty.name}</strong>
+                      {specialty.description ? <small>{specialty.description}</small> : null}
+                    </button>
+                  );
+                })}
+            </div>
+            {customSpecialties.length > 0 ? (
+              <div className="chip-row mt-2">
+                {customSpecialties.map((value) => (
+                  <span key={value} className="chip active">
+                    {value}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSpecialties((current) => current.filter((item) => item !== value))}
+                      aria-label={`إزالة ${value}`}
+                      style={{ border: 0, background: 'transparent', padding: 0, color: 'inherit', display: 'inline-flex', marginInlineStart: '0.25rem' }}
+                    >
+                      <X size={13} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            {otherSelected ? (
+              <div className="mt-2">
+                <Input
+                  label="ما مجالك بالضبط؟"
+                  required
+                  value={customSpecialty}
+                  onChange={(event) => {
+                    setCustomSpecialty(event.target.value);
+                    setProfileFieldErrors((errs) => ({ ...errs, customSpecialty: '' }));
+                  }}
+                  error={profileFieldErrors.customSpecialty}
+                  placeholder="مثال: متجر أغذية، مقاولة زراعية…"
+                  maxLength={60}
+                />
+              </div>
+            ) : null}
             {profileFieldErrors.specialties ? <span className="field-error">{profileFieldErrors.specialties}</span> : null}
-            <div className="row mt-1" style={{ gap: '0.4rem' }}>
-              <input
-                className="input"
-                value={customSpecialty}
-                onChange={(event) => setCustomSpecialty(event.target.value)}
-                placeholder="تخصص آخر غير موجود بالقائمة"
-                aria-label="تخصص آخر"
-                maxLength={60}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    addCustomSpecialty();
-                  }
-                }}
-              />
-              <Button type="button" variant="secondary" onClick={addCustomSpecialty} icon={<Plus size={16} />}>
-                إضافة
-              </Button>
-            </div>
+            {!otherSelected ? (
+              <div className="row mt-2" style={{ gap: '0.4rem' }}>
+                <input
+                  className="input"
+                  value={customSpecialty}
+                  onChange={(event) => setCustomSpecialty(event.target.value)}
+                  placeholder="تخصص آخر غير موجود بالقائمة"
+                  aria-label="تخصص آخر"
+                  maxLength={60}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      addCustomSpecialty();
+                    }
+                  }}
+                />
+                <Button type="button" variant="secondary" onClick={addCustomSpecialty} icon={<Plus size={16} />}>
+                  إضافة
+                </Button>
+              </div>
+            ) : null}
+            {user.permissions && !user.permissions.some((p) => p.startsWith('listings.create')) ? (
+              <p className="small muted mt-2">
+                تخصصاتك الحالية لا تتيح نشر إعلانات — أضف تخصصاً تجارياً (تاجر، مزارع، شركة نقل…) لتفعيل النشر.
+              </p>
+            ) : null}
           </div>
 
           <div className="row" style={{ justifyContent: 'flex-end' }}>

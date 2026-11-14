@@ -2585,3 +2585,80 @@ button {
     justify-content: center;
   }
 }
+
+/* Specialty selection cards */
+.spec-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--green-700);
+  background: var(--success-soft);
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+  margin-bottom: 0.6rem;
+}
+
+.spec-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.6rem;
+}
+
+.spec-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  text-align: start;
+  padding: 0.8rem;
+  border: 1.5px solid var(--border, #e2e6dd);
+  border-radius: 14px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  font: inherit;
+  color: inherit;
+}
+
+.spec-card:hover:not(:disabled) {
+  border-color: var(--green-500, #4b7d51);
+}
+
+.spec-card.active {
+  border-color: var(--green-600, #2f5d3a);
+  background: var(--success-soft);
+  box-shadow: 0 0 0 1px var(--green-600, #2f5d3a) inset;
+}
+
+.spec-card:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.spec-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--green-50, #eef5ec);
+  color: var(--green-700);
+}
+
+.spec-card.active .spec-card-icon {
+  background: var(--green-600, #2f5d3a);
+  color: #fff;
+}
+
+.spec-card strong {
+  font-size: 0.9rem;
+}
+
+.spec-card small {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.45;
+}

@@ -2,6 +2,7 @@ import { getDb, query, queryOne, execute } from '../../db';
 import { badRequest, notFound } from '../../lib/ApiError';
 import { validate } from '../../lib/validate';
 import { updateSchema, updateContactPreferencesSchema } from './users.schemas';
+import { getUserPermissions, getUserSpecialtyDetails } from '../../lib/permissions';
 
 export async function getUserById(userId: number) {
   const user = await queryOne<{
@@ -19,10 +20,6 @@ export async function getUserById(userId: number) {
     governorate_id: number;
     area: string;
   }>('SELECT business_name, description, governorate_id, area FROM user_profiles WHERE user_id = ?', [userId]);
-  const specialties = await query<{ id: number; name: string; custom_specialty: string | null }>(
-    `SELECT s.id AS id, s.name AS name, us.custom_specialty AS custom_specialty FROM user_specialties us LEFT JOIN specialties s ON s.id = us.specialty_id WHERE us.user_id = ?`,
-    [userId],
-  );
   const contactPrefs = await queryOne<{
     show_phone: number;
     whatsapp_enabled: number;
@@ -45,11 +42,8 @@ export async function getUserById(userId: number) {
           area: profile.area,
         }
       : null,
-    specialties: specialties.map((row) => ({
-      id: row.id,
-      name: row.name,
-      customSpecialty: row.custom_specialty,
-    })),
+    specialties: await getUserSpecialtyDetails(userId),
+    permissions: await getUserPermissions(userId, user.role),
     contactPreferences: contactPrefs ?? { showPhone: 0, whatsappEnabled: 0, internalMessagesEnabled: 1 },
   };
 }
@@ -69,10 +63,6 @@ export async function getProfileWithUser(userId: number) {
     governorate_id: number;
     area: string;
   }>('SELECT business_name, description, governorate_id, area FROM user_profiles WHERE user_id = ?', [userId]);
-  const specialties = await query<{ id: number; name: string; custom_specialty: string | null }>(
-    `SELECT s.id AS id, s.name AS name, us.custom_specialty AS custom_specialty FROM user_specialties us LEFT JOIN specialties s ON s.id = us.specialty_id WHERE us.user_id = ?`,
-    [userId],
-  );
   const contactPrefs = await queryOne<{
     show_phone: number;
     whatsapp_enabled: number;
@@ -93,11 +83,8 @@ export async function getProfileWithUser(userId: number) {
           area: profile.area,
         }
       : null,
-    specialties: specialties.map((row) => ({
-      id: row.id,
-      name: row.name,
-      customSpecialty: row.custom_specialty,
-    })),
+    specialties: await getUserSpecialtyDetails(userId),
+    permissions: await getUserPermissions(userId, full?.role),
     contactPreferences: contactPrefs ?? { showPhone: 0, whatsappEnabled: 0, internalMessagesEnabled: 1 },
   };
 }
@@ -126,11 +113,19 @@ export async function updateMe(userId: number, input: unknown) {
     Math.floor(Date.now() / 1000),
   );
   if (data.specialties) {
+    const otherId = (await queryOne<{ id: number }>("SELECT id FROM specialties WHERE code = 'other' LIMIT 1"))?.id;
+    const wantsOther = data.specialties.some((s) => typeof s === 'number' && s === otherId);
+    if (wantsOther && !data.customSpecialty) {
+      throw badRequest('CUSTOM_SPECIALTY_REQUIRED', 'Please describe your field when selecting "Other"');
+    }
     await execute('DELETE FROM user_specialties WHERE user_id = ?', [userId]);
     for (const specialty of data.specialties) {
       if (typeof specialty === 'number') {
-        const row = await queryOne<{ id: number }>('SELECT id FROM specialties WHERE id = ?', [specialty]);
-        if (row) await execute('INSERT INTO user_specialties (user_id, specialty_id, custom_specialty) VALUES (?, ?, NULL)', [userId, row.id]);
+        const row = await queryOne<{ id: number; code: string | null }>('SELECT id, code FROM specialties WHERE id = ?', [specialty]);
+        if (row) {
+          const custom = row.code === 'other' ? data.customSpecialty!.trim() : null;
+          await execute('INSERT INTO user_specialties (user_id, specialty_id, custom_specialty) VALUES (?, ?, ?)', [userId, row.id, custom]);
+        }
       } else {
         const trimmed = specialty.trim();
         if (trimmed) await execute('INSERT INTO user_specialties (user_id, specialty_id, custom_specialty) VALUES (?, NULL, ?)', [userId, trimmed]);

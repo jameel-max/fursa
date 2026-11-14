@@ -24,6 +24,10 @@ export interface ProfileDetails {
 export interface UserSpecialty {
   id: number | null;
   name: string | null;
+  code?: string | null;
+  nameEn?: string | null;
+  description?: string | null;
+  icon?: string | null;
   customSpecialty: string | null;
 }
 
@@ -36,6 +40,7 @@ export interface ContactPreferences {
 export interface CurrentUser extends AuthUser {
   profile: ProfileDetails | null;
   specialties: UserSpecialty[];
+  permissions?: string[];
   contactPreferences: ContactPreferences;
 }
 
@@ -127,6 +132,10 @@ export interface Unit {
 export interface Specialty {
   id: number;
   name: string;
+  code: string | null;
+  nameEn: string | null;
+  description: string | null;
+  icon: string | null;
   isActive: boolean;
 }
 

@@ -59,6 +59,10 @@ export async function register(input: unknown): Promise<{ user: AuthUser; devCod
     throw badRequest('PHONE_ALREADY_REGISTERED', 'This phone number is already registered');
   }
 
+  const otherSpecialtyId = (
+    await queryOne<{ id: number }>("SELECT id FROM specialties WHERE code = 'other' LIMIT 1")
+  )?.id;
+
   const now = Math.floor(Date.now() / 1000);
   const userId = await withTransaction(async (): Promise<number> => {
     await execute(
@@ -69,13 +73,21 @@ export async function register(input: unknown): Promise<{ user: AuthUser; devCod
     if (!user) throw new Error('USER_CREATE_FAILED');
     const newUserId = user.id;
 
+    const wantsOther = data.specialties.some(
+      (s) => typeof s === 'number' && s === otherSpecialtyId,
+    );
+    if (wantsOther && !data.customSpecialty) {
+      throw badRequest('CUSTOM_SPECIALTY_REQUIRED', 'Please describe your field when selecting "Other"');
+    }
     for (const specialty of data.specialties) {
       if (typeof specialty === 'number') {
-        const specialtyRow = await queryOne<{ id: number }>('SELECT id FROM specialties WHERE id = ?', [specialty]);
+        const specialtyRow = await queryOne<{ id: number; code: string | null }>('SELECT id, code FROM specialties WHERE id = ?', [specialty]);
         if (specialtyRow) {
-          await execute('INSERT INTO user_specialties (user_id, specialty_id, custom_specialty) VALUES (?, ?, NULL) ON CONFLICT DO NOTHING', [
+          const custom = specialtyRow.code === 'other' ? data.customSpecialty!.trim() : null;
+          await execute('INSERT INTO user_specialties (user_id, specialty_id, custom_specialty) VALUES (?, ?, ?) ON CONFLICT DO NOTHING', [
             newUserId,
             specialtyRow.id,
+            custom,
           ]);
         }
         continue;

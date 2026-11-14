@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { createListingSchema, updateListingSchema, listingStatusSchema, offerSchema, offerStatusSchema } from './listings.schemas';
 import { canPublish, getEffectiveSubscription } from '../subscriptions/subscriptions.service';
 import { getMyReviewForListing, getRatingSummary, type ReviewRecord } from '../reviews/reviews.service';
+import { assertUserPermission, LISTING_TYPE_PERMISSION } from '../../lib/permissions';
 
 export interface ListingFilters {
   listingType?: 'offer' | 'request' | 'service';
@@ -358,6 +359,8 @@ export async function listMyListings(userId: number, status: string) {
 
 export async function createListing(userId: number, input: unknown, imageUrls: string[]) {
   const data = validate(createListingSchema, input);
+  const requiredPerm = LISTING_TYPE_PERMISSION[data.listingType];
+  if (requiredPerm) await assertUserPermission(userId, requiredPerm);
   const nowSec = Math.floor(Date.now() / 1000);
   const { allowed, subscription, usage } = await canPublish(userId, nowSec);
   if (!allowed) {

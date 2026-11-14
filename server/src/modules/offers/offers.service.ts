@@ -3,6 +3,7 @@ import { badRequest, notFound } from '../../lib/ApiError';
 import { validate } from '../../lib/validate';
 import { offerSchema, offerStatusSchema } from '../listings/listings.schemas';
 import { sendPushToUser } from '../../lib/push';
+import { assertUserPermission } from '../../lib/permissions';
 
 export interface OfferRecord {
   id: number;
@@ -43,6 +44,7 @@ async function pushNotification(userId: number, type: string, title: string, bod
 }
 
 export async function createOffer(listingId: number, buyerUserId: number, input: unknown) {
+  await assertUserPermission(buyerUserId, 'offers.create');
   const data = validate(offerSchema, input);
   const listing = await queryOne<{ id: number; user_id: number; listing_type: string; status: string; title: string }>(
     'SELECT id, user_id, listing_type, status, title FROM listings WHERE id = ?',

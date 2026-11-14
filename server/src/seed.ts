@@ -1,6 +1,7 @@
 import { query, queryOne, execute, execSql, loadSchemaSql, insertAndGetId } from './db';
 import { seedDemoData } from './demo-seed';
 import { hashPassword } from './lib/password';
+import { PERMISSIONS, SPECIALTY_REGISTRY, BASE_PERMISSIONS } from './lib/permissions';
 
 export async function seed() {
   const schema = loadSchemaSql();
@@ -18,6 +19,19 @@ export async function seed() {
     // column already exists
   }
 
+  for (const column of ['code TEXT', 'name_en TEXT', 'description TEXT', 'icon TEXT']) {
+    try {
+      await execute(`ALTER TABLE specialties ADD COLUMN ${column}`);
+    } catch {
+      // column already exists
+    }
+  }
+  try {
+    await execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_specialties_code ON specialties(code)');
+  } catch {
+    // index already exists
+  }
+
   const insertSpecialty = async (name: string) => {
     const result = await execute('INSERT INTO specialties (name, is_active) VALUES (?, 1) ON CONFLICT DO NOTHING', [name]);
     return result.lastInsertRowid;
@@ -28,13 +42,13 @@ export async function seed() {
     'تاجر',
     'تاجر جملة',
     'تاجر تجزئة',
-    'مصنع تعبئة وتوضيب',
+    'مصنع تعبئة وتصنيع',
     'شركة نقل',
     'مورد مستلزمات زراعية',
     'مقدم خدمات زراعية',
     'شركة زراعية',
     'وسيط تجاري',
-    'أخرى',
+    'مجال آخر',
   ];
   for (const name of specialtySeeds) {
     const id = await insertSpecialty(name);
@@ -82,6 +96,32 @@ export async function seed() {
       await execute(
         'INSERT INTO categories (name, parent_id, is_active) VALUES (?, ?, 1) ON CONFLICT DO NOTHING',
         [childName, parent.id],
+      );
+    }
+  }
+
+  // Specialty metadata + permission registry (idempotent)
+  for (const meta of SPECIALTY_REGISTRY) {
+    await execute(
+      `INSERT INTO specialties (name, code, name_en, description, icon, is_active)
+       VALUES (?, ?, ?, ?, ?, 1)
+       ON CONFLICT(name) DO UPDATE SET code = excluded.code, name_en = excluded.name_en,
+         description = excluded.description, icon = excluded.icon
+       WHERE specialties.code IS NULL`,
+      [meta.nameAr, meta.code, meta.nameEn, meta.description, meta.icon],
+    );
+  }
+  for (const perm of PERMISSIONS) {
+    await execute(
+      'INSERT INTO permissions (code, label_ar, is_base) VALUES (?, ?, ?) ON CONFLICT(code) DO NOTHING',
+      [perm.code, perm.labelAr, BASE_PERMISSIONS.includes(perm.code as (typeof BASE_PERMISSIONS)[number]) ? 1 : 0],
+    );
+  }
+  for (const meta of SPECIALTY_REGISTRY) {
+    for (const permCode of meta.permissions) {
+      await execute(
+        'INSERT INTO specialization_permissions (specialty_code, permission_code) VALUES (?, ?) ON CONFLICT DO NOTHING',
+        [meta.code, permCode],
       );
     }
   }

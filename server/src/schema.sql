@@ -3,7 +3,24 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS specialties (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL UNIQUE,
+  code TEXT,
+  name_en TEXT,
+  description TEXT,
+  icon TEXT,
   is_active INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS permissions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  code TEXT NOT NULL UNIQUE,
+  label_ar TEXT NOT NULL,
+  is_base INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS specialization_permissions (
+  specialty_code TEXT NOT NULL,
+  permission_code TEXT NOT NULL,
+  PRIMARY KEY (specialty_code, permission_code)
 );
 
 CREATE TABLE IF NOT EXISTS governorates (

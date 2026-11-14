@@ -85,3 +85,23 @@ export const updateAdminSettingsHandler = asyncHandler(async (req: Request, res:
   const data = await adminService.updateAdminSettings(req.user!.id, values);
   return sendSuccess(res, data);
 });
+
+export const listAdminSpecialtiesHandler = asyncHandler(async (_req: Request, res: Response) => {
+  const data = await adminService.listAdminSpecialties();
+  return sendSuccess(res, data);
+});
+
+export const createAdminSpecialtyHandler = asyncHandler(async (req: Request, res: Response) => {
+  const result = await adminService.createAdminSpecialty(req.user!.id, req.body);
+  return sendSuccess(res, result);
+});
+
+export const updateAdminSpecialtyHandler = asyncHandler(async (req: Request, res: Response) => {
+  const result = await adminService.updateAdminSpecialty(req.user!.id, Number(req.params.id), req.body);
+  return sendSuccess(res, result);
+});
+
+export const setSpecialtyPermissionHandler = asyncHandler(async (req: Request, res: Response) => {
+  const result = await adminService.setSpecialtyPermission(req.user!.id, String(req.params.code), req.body);
+  return sendSuccess(res, result);
+});

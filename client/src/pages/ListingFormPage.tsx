@@ -15,6 +15,7 @@ import { api } from '../lib/api';
 import { compressImage } from '../lib/image';
 import { flattenCategories, useCatalog } from '../lib/catalog';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import type { Listing, ListingImage, ListingType, PriceType } from '../types';
 import { getErrorMessage, getFieldErrors } from '../lib/validation';
 import { Button, buttonClass } from '../components/ui/Button';
@@ -41,6 +42,20 @@ export function ListingFormPage() {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { categories, units, governorates, loading: catalogLoading, error: catalogError } = useCatalog();
+  const { user } = useAuth();
+
+  const TYPE_PERMISSIONS: Record<ListingType, string> = {
+    offer: 'listings.create_offer',
+    request: 'listings.create_request',
+    service: 'listings.create_service',
+  };
+  const allowedTypes = useMemo<ListingType[]>(() => {
+    const perms = user?.permissions ?? [];
+    const all = perms.includes('*');
+    return (['offer', 'request', 'service'] as ListingType[]).filter(
+      (type) => all || perms.includes(TYPE_PERMISSIONS[type]),
+    );
+  }, [user?.permissions]);
 
   const [searchParams] = useSearchParams();
   const initialType = searchParams.get('type');
@@ -66,6 +81,12 @@ export function ListingFormPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!isEdit && allowedTypes.length > 0 && !allowedTypes.includes(listingType)) {
+      setListingType(allowedTypes[0]);
+    }
+  }, [isEdit, allowedTypes, listingType]);
 
   const urlsRef = useRef<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -263,7 +284,14 @@ export function ListingFormPage() {
       <form className="stack" onSubmit={onSubmit} noValidate>
         <Card pad className="stack">
           <h2 style={{ fontSize: '1.1rem' }}>نوع الإعلان</h2>
+          {!isEdit && allowedTypes.length === 0 ? (
+            <Alert kind="warning">
+              تخصصاتك الحالية لا تتيح نشر إعلانات. أضف تخصصاً تجارياً من{' '}
+              <Link to="/dashboard/profile">الملف الشخصي</Link> أولاً.
+            </Alert>
+          ) : (
           <div className="grid grid-3">
+            {allowedTypes.includes('offer') || isEdit ? (
             <button
               type="button"
               className={listingType === 'offer' ? 'type-choice active' : 'type-choice'}
@@ -279,6 +307,8 @@ export function ListingFormPage() {
                 <small>لديّ محصول أو منتج أو خدمة أريد بيعها.</small>
               </span>
             </button>
+            ) : null}
+            {allowedTypes.includes('request') || isEdit ? (
             <button
               type="button"
               className={listingType === 'request' ? 'type-choice active' : 'type-choice'}
@@ -294,6 +324,8 @@ export function ListingFormPage() {
                 <small>أبحث عن كمية محددة وأريد استقبال عروض.</small>
               </span>
             </button>
+            ) : null}
+            {allowedTypes.includes('service') || isEdit ? (
             <button
               type="button"
               className={listingType === 'service' ? 'type-choice active' : 'type-choice'}
@@ -309,7 +341,9 @@ export function ListingFormPage() {
                 <small>أقدّم خدمة زراعية أو نقل أو تعبئة وأريد تسويقها.</small>
               </span>
             </button>
+            ) : null}
           </div>
+          )}
           {isEdit ? <p className="small muted">لا يمكن تغيير نوع الإعلان بعد النشر.</p> : null}
         </Card>
 

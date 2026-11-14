@@ -1,5 +1,7 @@
-import { getDb, query, queryOne, execute, withTransaction } from '../../db';
-import { badRequest } from '../../lib/ApiError';
+import { getDb, query, queryOne, execute, insertAndGetId, withTransaction } from '../../db';
+import { badRequest, conflict, notFound } from '../../lib/ApiError';
+import { validate } from '../../lib/validate';
+import { createSpecialtySchema, updateSpecialtySchema, setSpecialtyPermissionSchema } from './admin.schemas';
 
 export interface AdminStats {
   users: { total: number; newThisMonth: number; pending: number; active: number; suspended: number };
@@ -480,5 +482,116 @@ export async function updateAdminSettings(adminUserId: number, values: Record<st
       [adminUserId, 'SETTINGS_UPDATE', 'settings', null, JSON.stringify(values), now]);
   });
 
+  return { success: true };
+}
+
+export async function listAdminSpecialties() {
+  const rows = await query<{
+    id: number;
+    name: string;
+    code: string | null;
+    name_en: string | null;
+    description: string | null;
+    icon: string | null;
+    is_active: number;
+    user_count: number;
+  }>(
+    `SELECT s.id, s.name, s.code, s.name_en, s.description, s.icon, s.is_active,
+            (SELECT COUNT(*) FROM user_specialties us WHERE us.specialty_id = s.id) AS user_count
+     FROM specialties s ORDER BY s.id ASC`,
+  );
+  const permRows = await query<{ specialty_code: string; permission_code: string }>(
+    'SELECT specialty_code, permission_code FROM specialization_permissions',
+  );
+  const permMap = new Map<string, string[]>();
+  for (const row of permRows) {
+    const list = permMap.get(row.specialty_code) ?? [];
+    list.push(row.permission_code);
+    permMap.set(row.specialty_code, list);
+  }
+  const allPerms = await query<{ code: string; label_ar: string; is_base: number }>(
+    'SELECT code, label_ar, is_base FROM permissions ORDER BY id ASC',
+  );
+  return {
+    specialties: rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      code: row.code,
+      nameEn: row.name_en,
+      description: row.description,
+      icon: row.icon,
+      isActive: row.is_active === 1,
+      userCount: row.user_count,
+      permissions: row.code ? permMap.get(row.code) ?? [] : [],
+    })),
+    permissions: allPerms.map((p) => ({ code: p.code, labelAr: p.label_ar, isBase: p.is_base === 1 })),
+  };
+}
+
+export async function createAdminSpecialty(adminUserId: number, input: unknown) {
+  const data = validate(createSpecialtySchema, input);
+  const code = data.code ?? `spec_${Math.random().toString(36).slice(2, 10)}`;
+  const existing = await queryOne<{ id: number }>('SELECT id FROM specialties WHERE code = ? OR name = ?', [code, data.name]);
+  if (existing) throw conflict('SPECIALTY_EXISTS', 'Specialty already exists');
+  const now = Math.floor(Date.now() / 1000);
+  const id = await insertAndGetId(
+    'INSERT INTO specialties (name, code, name_en, description, icon, is_active) VALUES (?, ?, ?, ?, ?, 1)',
+    [data.name, code, data.nameEn ?? null, data.description ?? null, data.icon ?? null],
+  );
+  await execute(
+    'INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+    [adminUserId, 'SPECIALTY_CREATE', 'specialty', id, JSON.stringify(data), now],
+  );
+  return { id };
+}
+
+export async function updateAdminSpecialty(adminUserId: number, specialtyId: number, input: unknown) {
+  const data = validate(updateSpecialtySchema, input);
+  const existing = await queryOne<{ id: number; name: string; name_en: string | null; description: string | null; icon: string | null; is_active: number }>(
+    'SELECT id, name, name_en, description, icon, is_active FROM specialties WHERE id = ?',
+    [specialtyId],
+  );
+  if (!existing) throw notFound('SPECIALTY_NOT_FOUND', 'Specialty not found');
+  const now = Math.floor(Date.now() / 1000);
+  await execute(
+    `UPDATE specialties SET name = ?, name_en = ?, description = ?, icon = ?, is_active = ? WHERE id = ?`,
+    [
+      data.name?.trim() ?? existing.name,
+      data.nameEn !== undefined ? data.nameEn?.trim() ?? null : existing.name_en,
+      data.description !== undefined ? data.description?.trim() ?? null : existing.description,
+      data.icon !== undefined ? data.icon?.trim() ?? null : existing.icon,
+      data.isActive === undefined ? existing.is_active : data.isActive ? 1 : 0,
+      specialtyId,
+    ],
+  );
+  await execute(
+    'INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+    [adminUserId, 'SPECIALTY_UPDATE', 'specialty', specialtyId, JSON.stringify(data), now],
+  );
+  return { success: true };
+}
+
+export async function setSpecialtyPermission(adminUserId: number, specialtyCode: string, input: unknown) {
+  const { permissionCode, enabled } = validate(setSpecialtyPermissionSchema, input);
+  const specialty = await queryOne<{ code: string }>('SELECT code FROM specialties WHERE code = ?', [specialtyCode]);
+  if (!specialty) throw notFound('SPECIALTY_NOT_FOUND', 'Specialty not found');
+  const perm = await queryOne<{ code: string }>('SELECT code FROM permissions WHERE code = ?', [permissionCode]);
+  if (!perm) throw notFound('PERMISSION_NOT_FOUND', 'Permission not found');
+  if (enabled) {
+    await execute(
+      'INSERT INTO specialization_permissions (specialty_code, permission_code) VALUES (?, ?) ON CONFLICT DO NOTHING',
+      [specialtyCode, permissionCode],
+    );
+  } else {
+    await execute(
+      'DELETE FROM specialization_permissions WHERE specialty_code = ? AND permission_code = ?',
+      [specialtyCode, permissionCode],
+    );
+  }
+  await execute(
+    'INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+    [adminUserId, enabled ? 'PERMISSION_GRANT' : 'PERMISSION_REVOKE', 'specialty', undefined,
+     JSON.stringify({ specialtyCode, permissionCode }), Math.floor(Date.now() / 1000)],
+  );
   return { success: true };
 }

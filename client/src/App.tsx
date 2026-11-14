@@ -27,6 +27,7 @@ import { AdminUsersPage } from './pages/admin/AdminUsersPage';
 import { AdminListingsPage } from './pages/admin/AdminListingsPage';
 import { AdminSubscriptionsPage } from './pages/admin/AdminSubscriptionsPage';
 import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
+import { AdminSpecialtiesPage } from './pages/admin/AdminSpecialtiesPage';
 
 export default function App() {
   return (
@@ -79,6 +80,7 @@ export default function App() {
           <Route path="ads" element={<AdminAdsPage />} />
           <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
+          <Route path="specialties" element={<AdminSpecialtiesPage />} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

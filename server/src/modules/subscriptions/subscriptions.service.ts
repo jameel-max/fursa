@@ -1,6 +1,7 @@
 import { getDb, query, queryOne, execute, withTransaction } from '../../db';
 import { badRequest } from '../../lib/ApiError';
 import { logAudit } from '../../lib/auth';
+import { assertUserPermission } from '../../lib/permissions';
 
 export const FREE_PLAN_NAME = 'free';
 
@@ -146,6 +147,7 @@ export async function getMySubscription(userId: number) {
 }
 
 export async function createCheckout(userId: number, planId: number) {
+  await assertUserPermission(userId, 'subscriptions.manage');
   if (!Number.isInteger(planId) || planId <= 0) {
     throw badRequest('INVALID_PLAN', 'Please choose a valid plan');
   }

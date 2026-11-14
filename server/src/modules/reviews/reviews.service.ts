@@ -2,6 +2,7 @@ import { query, queryOne, execute } from '../../db';
 import { badRequest, forbidden, notFound } from '../../lib/ApiError';
 import { validate } from '../../lib/validate';
 import { createReviewSchema } from './reviews.schemas';
+import { assertUserPermission } from '../../lib/permissions';
 
 export interface ReviewRecord {
   id: number;
@@ -35,6 +36,7 @@ export async function getRatingSummary(userId: number): Promise<RatingSummary> {
 }
 
 export async function createReview(reviewerId: number, input: unknown) {
+  await assertUserPermission(reviewerId, 'reviews.create');
   const data = validate(createReviewSchema, input);
 
   const listing = await queryOne<{ id: number; user_id: number; status: string }>(

@@ -1,6 +1,19 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, UserPlus, X } from 'lucide-react';
+import {
+  Briefcase,
+  Building2,
+  Factory,
+  Package,
+  Shapes,
+  ShoppingBag,
+  Sprout,
+  Store,
+  Truck,
+  UserPlus,
+  Warehouse,
+  Wrench,
+} from 'lucide-react';
 import { AuthShell } from '../components/AuthShell';
 import { Button } from '../components/ui/Button';
 import { Alert } from '../components/ui/Feedback';
@@ -8,6 +21,20 @@ import { Checkbox, Input, Select, Textarea } from '../components/ui/Form';
 import { useAuth } from '../context/AuthContext';
 import { useCatalog } from '../lib/catalog';
 import { getErrorMessage, getFieldErrors } from '../lib/validation';
+
+const SPECIALTY_ICONS: Record<string, typeof Sprout> = {
+  sprout: Sprout,
+  store: Store,
+  warehouse: Warehouse,
+  'shopping-bag': ShoppingBag,
+  factory: Factory,
+  truck: Truck,
+  package: Package,
+  wrench: Wrench,
+  building: Building2,
+  briefcase: Briefcase,
+  shapes: Shapes,
+};
 
 function safeNext(value: string | null): string {
   if (value && value.startsWith('/') && !value.startsWith('//')) return value;
@@ -37,35 +64,19 @@ export function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const customSpecialties = useMemo(
-    () => selectedSpecialties.filter((item): item is string => typeof item === 'string'),
-    [selectedSpecialties],
-  );
+  const otherSpecialty = catalogSpecialties.find((item) => item.code === 'other');
+  const otherSelected = otherSpecialty ? selectedSpecialties.includes(otherSpecialty.id) : false;
 
   const toggleSpecialty = (specialtyId: number) => {
     setSelectedSpecialties((current) => {
       if (current.includes(specialtyId)) return current.filter((item) => item !== specialtyId);
-      if (current.length >= 3) return current;
+      if (current.length >= 3) {
+        setFieldErrors((errs) => ({ ...errs, specialties: 'الحد الأقصى 3 تخصصات — أزل تخصصاً أولاً.' }));
+        return current;
+      }
+      setFieldErrors((errs) => ({ ...errs, specialties: '' }));
       return [...current, specialtyId];
     });
-    setFieldErrors((current) => ({ ...current, specialties: '' }));
-  };
-
-  const addCustomSpecialty = () => {
-    const value = customSpecialty.trim();
-    if (!value) return;
-    if (selectedSpecialties.length >= 3) {
-      setFieldErrors((current) => ({ ...current, specialties: 'يمكنك اختيار 3 تخصصات كحد أقصى.' }));
-      return;
-    }
-    if (selectedSpecialties.some((item) => typeof item === 'string' && item === value)) return;
-    setSelectedSpecialties((current) => [...current, value]);
-    setCustomSpecialty('');
-    setFieldErrors((current) => ({ ...current, specialties: '' }));
-  };
-
-  const removeSpecialty = (value: number | string) => {
-    setSelectedSpecialties((current) => current.filter((item) => item !== value));
   };
 
   const onSubmit = async (event: React.FormEvent) => {
@@ -74,6 +85,9 @@ export function RegisterPage() {
     const nextErrors: Record<string, string> = {};
 
     if (selectedSpecialties.length === 0) nextErrors.specialties = 'اختر تخصصاً واحداً على الأقل.';
+    if (otherSelected && customSpecialty.trim().length < 2) {
+      nextErrors.customSpecialty = 'اكتب المجال الذي تعمل فيه.';
+    }
     if (password !== passwordConfirm) nextErrors.passwordConfirm = 'كلمتا المرور غير متطابقتين.';
     if (!termsAccepted) nextErrors.termsAccepted = 'يجب الموافقة على الشروط والأحكام.';
     if (Object.keys(nextErrors).length > 0) {
@@ -91,6 +105,7 @@ export function RegisterPage() {
         passwordConfirm,
         termsAccepted,
         specialties: selectedSpecialties,
+        customSpecialty: otherSelected ? customSpecialty.trim() : undefined,
         businessName: businessName.trim() || undefined,
         description: description.trim() || undefined,
         governorateId: governorateId ? Number(governorateId) : undefined,
@@ -175,44 +190,56 @@ export function RegisterPage() {
         </div>
 
         <div className="field">
-          <span className="label">
-            التخصصات <span className="muted small">(حتى 3)</span>
-          </span>
-          <div className="chip-row">
+          <span className="label">ما طبيعة عملك؟</span>
+          <p className="field-hint" style={{ marginTop: 0 }}>
+            اختر المجالات التي تعمل بها (1–3) حتى نخصص لك تجربة مناسبة.
+          </p>
+          <div className="spec-counter" aria-live="polite">
+            {selectedSpecialties.length} / 3 تخصصات مختارة
+          </div>
+          <div className="spec-grid">
             {catalogLoading
               ? Array.from({ length: 6 }).map((_, index) => (
-                  <span key={index} className="skeleton" style={{ width: 92, height: 32, borderRadius: 999 }} />
+                  <span key={index} className="skeleton" style={{ height: 110, borderRadius: 14 }} />
                 ))
-              : catalogSpecialties.map((specialty) => {
-                  const active = selectedSpecialties.includes(specialty.id);
-                  return (
-                    <button
-                      key={specialty.id}
-                      type="button"
-                      className={active ? 'chip active' : 'chip'}
-                      aria-pressed={active}
-                      onClick={() => toggleSpecialty(specialty.id)}
-                    >
-                      {specialty.name}
-                    </button>
-                  );
-                })}
+              : catalogSpecialties
+                  .filter((specialty) => specialty.isActive)
+                  .map((specialty) => {
+                    const active = selectedSpecialties.includes(specialty.id);
+                    const Icon = SPECIALTY_ICONS[specialty.icon ?? ''] ?? Shapes;
+                    const disabled = !active && selectedSpecialties.length >= 3;
+                    return (
+                      <button
+                        key={specialty.id}
+                        type="button"
+                        className={active ? 'spec-card active' : 'spec-card'}
+                        aria-pressed={active}
+                        disabled={disabled}
+                        onClick={() => toggleSpecialty(specialty.id)}
+                      >
+                        <span className="spec-card-icon">
+                          <Icon size={22} />
+                        </span>
+                        <strong>{specialty.name}</strong>
+                        {specialty.description ? <small>{specialty.description}</small> : null}
+                      </button>
+                    );
+                  })}
           </div>
-          {customSpecialties.length > 0 ? (
-            <div className="chip-row">
-              {customSpecialties.map((value) => (
-                <span key={value} className="chip active">
-                  {value}
-                  <button
-                    type="button"
-                    onClick={() => removeSpecialty(value)}
-                    aria-label={`إزالة ${value}`}
-                    style={{ border: 0, background: 'transparent', padding: 0, color: 'inherit', display: 'inline-flex' }}
-                  >
-                    <X size={13} />
-                  </button>
-                </span>
-              ))}
+          {otherSelected ? (
+            <div className="mt-2">
+              <Input
+                label="ما مجالك بالضبط؟"
+                required
+                value={customSpecialty}
+                onChange={(event) => {
+                  setCustomSpecialty(event.target.value);
+                  setFieldErrors((errs) => ({ ...errs, customSpecialty: '' }));
+                }}
+                error={fieldErrors.customSpecialty}
+                placeholder="مثال: متجر أغذية، مقاولة زراعية…"
+                maxLength={60}
+              />
             </div>
           ) : null}
           {fieldErrors.specialties ? (
@@ -220,25 +247,6 @@ export function RegisterPage() {
               {fieldErrors.specialties}
             </span>
           ) : null}
-          <div className="row mt-1" style={{ gap: '0.4rem' }}>
-            <input
-              className="input"
-              value={customSpecialty}
-              onChange={(event) => setCustomSpecialty(event.target.value)}
-              placeholder="تخصص آخر غير موجود بالقائمة"
-              aria-label="تخصص آخر"
-              maxLength={60}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  addCustomSpecialty();
-                }
-              }}
-            />
-            <Button type="button" variant="secondary" onClick={addCustomSpecialty} icon={<Plus size={16} />}>
-              إضافة
-            </Button>
-          </div>
         </div>
 
         <div className="form-grid">

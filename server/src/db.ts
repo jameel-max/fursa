@@ -110,7 +110,7 @@ async function pgExecute(sql: string, params: unknown[] = []): Promise<{ rows: a
   let text = toPgPlaceholders(sql);
   const isInsert = /^\s*insert\b/i.test(text) && !/\breturning\b/i.test(text);
   if (isInsert) {
-    text = text.replace(/;?\s*$/, '') + ' RETURNING id';
+    text = text.replace(/;?\s*$/, '') + ' RETURNING *';
   }
   const result = await client.query(text, sanitizeParams(params));
   return { rows: result.rows ?? [], rowCount: result.rowCount ?? 0 };

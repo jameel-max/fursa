@@ -27,8 +27,13 @@ const links = [
   { to: '/subscription', label: 'الاشتراك', icon: Wallet, external: true },
 ];
 
+const CREATE_PERMS = ['listings.create_offer', 'listings.create_request', 'listings.create_service'];
+
 export function DashboardLayout() {
   const { user } = useAuth();
+  const canCreateListing = Boolean(
+    user?.permissions?.some((perm) => perm === '*' || CREATE_PERMS.includes(perm)),
+  );
 
   return (
     <div className="page container">
@@ -84,9 +89,11 @@ export function DashboardLayout() {
           ) : null}
 
           <div className="menu-sep" />
-          <Link to="/dashboard/listings/new" className={buttonClass('secondary', 'sm', 'btn-block')}>
-            <PlusCircle size={16} /> إعلان جديد
-          </Link>
+          {canCreateListing ? (
+            <Link to="/dashboard/listings/new" className={buttonClass('secondary', 'sm', 'btn-block')}>
+              <PlusCircle size={16} /> إعلان جديد
+            </Link>
+          ) : null}
         </aside>
 
         <div className="stack" style={{ minWidth: 0 }}>

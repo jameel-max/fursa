@@ -40,10 +40,26 @@ export async function listUnits() {
 }
 
 export async function listSpecialties() {
-  const rows = await query<{ id: number; name: string; is_active: number }>(
-    'SELECT id, name, is_active FROM specialties ORDER BY id ASC',
+  const rows = await query<{
+    id: number;
+    name: string;
+    code: string | null;
+    name_en: string | null;
+    description: string | null;
+    icon: string | null;
+    is_active: number;
+  }>(
+    'SELECT id, name, code, name_en, description, icon, is_active FROM specialties ORDER BY id ASC',
   );
-  return rows.map((row) => ({ id: row.id, name: row.name, isActive: row.is_active === 1 }));
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    code: row.code,
+    nameEn: row.name_en,
+    description: row.description,
+    icon: row.icon,
+    isActive: row.is_active === 1,
+  }));
 }
 
 export async function listGovernorates() {

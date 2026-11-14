@@ -15,6 +15,7 @@ import { Avatar } from './ui/Surfaces';
 
 const links = [
   { to: '/admin', label: 'نظرة عامة', icon: BarChart3, end: true },
+  { to: '/admin/specialties', label: 'التخصصات', icon: ShieldCheck },
   { to: '/admin/users', label: 'المستخدمون', icon: Users },
   { to: '/admin/listings', label: 'الإعلانات', icon: Leaf },
   { to: '/admin/ads', label: 'إعلانات المنصة', icon: Megaphone },
