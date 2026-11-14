@@ -4,7 +4,7 @@ import { validate } from '../../lib/validate';
 import { query, queryOne, execute } from '../../db';
 
 export const adSchema = z.object({
-  title: z.string().trim().min(3, 'Title must be at least 3 characters').max(160),
+  title: z.string().trim().max(160).optional(),
   linkUrl: z
     .string()
     .trim()
@@ -71,7 +71,7 @@ export async function createAd(adminUserId: number, input: unknown, imageDataUrl
   const info = await execute(
     'INSERT INTO ads (title, image_url, link_url, is_active, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
     [
-      data.title,
+      data.title ?? '',
       imageDataUrl,
       data.linkUrl?.trim() || null,
       data.isActive === false ? 0 : 1,

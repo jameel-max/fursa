@@ -71,7 +71,7 @@ export function AdminAdsPage() {
     setSaving(true);
     try {
       const formData = new FormData();
-      formData.append('title', title.trim());
+      if (title.trim()) formData.append('title', title.trim());
       if (linkUrl.trim()) formData.append('linkUrl', linkUrl.trim());
       formData.append('sortOrder', sortOrder || '0');
       formData.append('isActive', 'true');
@@ -134,7 +134,7 @@ export function AdminAdsPage() {
         </h2>
         <form onSubmit={createAd} className="stack">
           <div className="grid grid-2">
-            <Field label="عنوان الإعلان" required>
+            <Field label="عنوان الإعلان" hint="اختياري — يظهر كنص فوق الصورة">
               <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="مثال: خصم 20% على الأسمدة" maxLength={160} />
             </Field>
             <Field label="رابط الإعلان" hint="رابط خارجي (https) أو صفحة داخلية. اختياري.">
