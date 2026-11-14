@@ -73,13 +73,14 @@ export async function register(input: unknown): Promise<{ user: AuthUser; devCod
     if (!user) throw new Error('USER_CREATE_FAILED');
     const newUserId = user.id;
 
-    const wantsOther = data.specialties.some(
+    const specialties = data.specialties ?? [];
+    const wantsOther = specialties.some(
       (s) => typeof s === 'number' && s === otherSpecialtyId,
     );
     if (wantsOther && !data.customSpecialty) {
       throw badRequest('CUSTOM_SPECIALTY_REQUIRED', 'Please describe your field when selecting "Other"');
     }
-    for (const specialty of data.specialties) {
+    for (const specialty of specialties) {
       if (typeof specialty === 'number') {
         const specialtyRow = await queryOne<{ id: number; code: string | null }>('SELECT id, code FROM specialties WHERE id = ?', [specialty]);
         if (specialtyRow) {

@@ -4,6 +4,7 @@ import { Funnel, Leaf, RotateCcw, Search, SlidersHorizontal } from 'lucide-react
 import { api, toQuery } from '../lib/api';
 import { useCatalog, flattenCategories } from '../lib/catalog';
 import { listingTypeLabel } from '../lib/format';
+import { LISTING_SECTIONS } from '../lib/sections';
 import type { Listing, ListingList, ListingType } from '../types';
 import { ListingCard } from '../components/ListingCard';
 import { Button, buttonClass } from '../components/ui/Button';
@@ -64,7 +65,7 @@ export function MarketPage() {
       setError(null);
       const source = new URLSearchParams(queryString);
       const params = new URLSearchParams();
-      for (const key of ['search', 'categoryId', 'specialtyId', 'governorateId', 'minPrice', 'maxPrice', 'sort', 'page']) {
+      for (const key of ['search', 'categoryId', 'specialtyId', 'section', 'governorateId', 'minPrice', 'maxPrice', 'sort', 'page']) {
         const value = source.get(key);
         if (value) params.set(key, value);
       }
@@ -96,6 +97,8 @@ export function MarketPage() {
     if (draft.sort && draft.sort !== 'rating') params.set('sort', draft.sort);
     const specialtyId = searchParams.get('specialtyId');
     if (specialtyId) params.set('specialtyId', specialtyId);
+    const section = searchParams.get('section');
+    if (section) params.set('section', section);
     setSearchParams(params);
   };
 
@@ -125,11 +128,16 @@ export function MarketPage() {
   const activeSpecialty = activeSpecialtyId
     ? specialties.find((s) => String(s.id) === activeSpecialtyId)
     : undefined;
+  const activeSection = searchParams.get('section');
+  const activeSectionDef = activeSection
+    ? LISTING_SECTIONS.find((s) => s.value === activeSection)
+    : undefined;
   const hasFilters = Array.from(searchParams.keys()).some((key) => key !== 'page');
   const activeFilterCount = [
     searchParams.get('type'),
     searchParams.get('categoryId'),
     searchParams.get('specialtyId'),
+    searchParams.get('section'),
     searchParams.get('governorateId'),
     searchParams.get('minPrice'),
     searchParams.get('maxPrice'),
@@ -303,6 +311,23 @@ export function MarketPage() {
         <span className="row" style={{ gap: '0.4rem' }}>
           {activeType ? (
             <span className="badge badge-outline">{listingTypeLabel[activeType as ListingType] ?? activeType}</span>
+          ) : null}
+          {activeSectionDef ? (
+            <button
+              type="button"
+              className="badge badge-outline"
+              style={{ cursor: 'pointer' }}
+              title="إزالة فلتر القسم"
+              onClick={() => {
+                const params = new URLSearchParams(searchParams);
+                params.delete('section');
+                params.delete('page');
+                setSearchParams(params);
+              }}
+            >
+              {activeSectionDef.label}
+              {activeSection === 'other' ? ' — أخرى' : ''} ✕
+            </button>
           ) : null}
           {activeSpecialty ? (
             <button

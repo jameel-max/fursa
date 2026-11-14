@@ -7,14 +7,14 @@ import {
   Leaf,
   MapPin,
   Search,
-  Shapes,
   ShieldCheck,
   Sprout,
   Users,
   Wallet,
 } from 'lucide-react';
 import { api } from '../lib/api';
-import { useCatalog, flattenCategories, SPECIALTY_ICONS } from '../lib/catalog';
+import { useCatalog, flattenCategories } from '../lib/catalog';
+import { LISTING_SECTIONS } from '../lib/sections';
 import type { AdBanner, Listing, ListingList, Plan } from '../types';
 import { ListingCard } from '../components/ListingCard';
 import { FeaturedHero } from '../components/FeaturedHero';
@@ -30,7 +30,7 @@ export function HomePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { ids: favoriteIds, toggle: toggleFavorite } = useFavorites();
-  const { categories, units, governorates, specialties, unitMap, governorateMap, categoryMap } = useCatalog();
+  const { categories, units, governorates, unitMap, governorateMap, categoryMap } = useCatalog();
   const [search, setSearch] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [listings, setListings] = useState<Listing[]>([]);
@@ -194,38 +194,34 @@ export function HomePage() {
       ) : null}
 
       <div className="container">
-        <section className="section" aria-labelledby="specialties-title">
+        <section className="section" aria-labelledby="sections-title">
           <SectionHead
-            title="تصفح حسب التخصص"
-            description="اختر المجال الأقرب لاحتياجك للوصول بسرعة إلى الإعلانات والطلبات المناسبة."
+            title="تصفح حسب القسم"
+            description="اختر القسم الأقرب لاحتياجك للوصول بسرعة إلى العروض والطلبات المناسبة."
             action={
               <Link to="/market" className="btn btn-sm btn-secondary">
                 كل الإعلانات
               </Link>
             }
           />
-          <div className="grid grid-3" id="specialties-title">
-            {specialties.length === 0
-              ? Array.from({ length: 6 }).map((_, index) => <div key={index} className="skeleton" style={{ height: 74 }} />)
-              : specialties.filter((s) => s.isActive).map((specialty) => {
-                  const Icon = SPECIALTY_ICONS[specialty.icon ?? ''] ?? Shapes;
-                  return (
-                    <Link key={specialty.id} to={`/market?specialtyId=${specialty.id}`} className="tile">
-                      <span className="tile-icon" aria-hidden="true">
-                        <Icon size={20} />
-                      </span>
-                      <span className="grow">
-                        {specialty.name}
-                        {specialty.description ? (
-                          <span className="field-hint" style={{ display: 'block', fontWeight: 500 }}>
-                            {specialty.description}
-                          </span>
-                        ) : null}
-                      </span>
-                      <ArrowLeft size={16} className="muted" aria-hidden="true" />
-                    </Link>
-                  );
-                })}
+          <div className="grid grid-3" id="sections-title">
+            {LISTING_SECTIONS.map((section) => {
+              const Icon = section.icon;
+              return (
+                <Link key={section.value} to={`/market?section=${section.value}`} className="tile">
+                  <span className="tile-icon" aria-hidden="true">
+                    <Icon size={20} />
+                  </span>
+                  <span className="grow">
+                    {section.label}
+                    <span className="field-hint" style={{ display: 'block', fontWeight: 500 }}>
+                      {section.hint}
+                    </span>
+                  </span>
+                  <ArrowLeft size={16} className="muted" aria-hidden="true" />
+                </Link>
+              );
+            })}
           </div>
         </section>
 

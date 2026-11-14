@@ -18,7 +18,7 @@ export const registerSchema = z.object({
   password: passwordSchema,
   passwordConfirm: z.string(),
   termsAccepted: z.boolean().refine((value) => value === true, 'You must accept the terms and conditions'),
-  specialties: z.array(z.union([z.string(), z.number()])).min(1, 'Select at least one specialty').max(3, 'You can select up to 3 specialties'),
+  specialties: z.array(z.union([z.string(), z.number()])).max(3, 'You can select up to 3 specialties').optional(),
   customSpecialty: z.string().trim().min(2, 'Describe your field').max(60).optional(),
   // Optional profile fields (validated conditionally in the service)
   businessName: z.string().max(120).optional(),

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ExternalLink, PauseCircle, PlayCircle, RefreshCw, Star, Trash2, XCircle } from 'lucide-react';
 import { api, toQuery } from '../../lib/api';
 import { useToast } from '../../context/ToastContext';
 import type { AdminListing, ListingStatus, ListingType } from '../../types';
 import { formatDate, formatNumber, formatPrice, listingStatusLabel, listingTypeLabel } from '../../lib/format';
+import { LISTING_SECTIONS, SECTION_LABELS } from '../../lib/sections';
 import { Button } from '../../components/ui/Button';
 import { Alert, EmptyState, LoadingBlock } from '../../components/ui/Feedback';
 import { ConfirmDialog } from '../../components/ui/Modal';
@@ -47,8 +48,10 @@ export function AdminListingsPage() {
 
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const [searchParams] = useSearchParams();
   const [status, setStatus] = useState<'' | ListingStatus>('');
   const [type, setType] = useState<'' | ListingType>('');
+  const [section, setSection] = useState<string>(searchParams.get('section') ?? '');
   const [page, setPage] = useState(1);
 
   const [data, setData] = useState<ListingsResponse | null>(null);
@@ -72,7 +75,7 @@ export function AdminListingsPage() {
     setError(null);
     try {
       const result = await api<ListingsResponse>(
-        `/admin/listings${toQuery({ search: search || undefined, status: status || undefined, type: type || undefined, page, limit: 20 })}`,
+        `/admin/listings${toQuery({ search: search || undefined, status: status || undefined, type: type || undefined, section: section || undefined, page, limit: 20 })}`,
       );
       setData(result);
       if (result.totalPages > 0 && page > result.totalPages) setPage(result.totalPages);
@@ -86,9 +89,9 @@ export function AdminListingsPage() {
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, status, type, page]);
+  }, [search, status, type, section, page]);
 
-  const activeFilters = useMemo(() => Boolean(search || status || type), [search, status, type]);
+  const activeFilters = useMemo(() => Boolean(search || status || type || section), [search, status, type, section]);
 
   const changeStatus = async () => {
     if (!pending) return;
@@ -207,6 +210,23 @@ export function AdminListingsPage() {
             </select>
           </div>
           <div className="field">
+            <label htmlFor="admin-listing-section">القسم</label>
+            <select
+              id="admin-listing-section"
+              className="select"
+              value={section}
+              onChange={(event) => {
+                setSection(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">كل الأقسام</option>
+              {LISTING_SECTIONS.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
             <label htmlFor="admin-listing-type">النوع</label>
             <select
               id="admin-listing-type"
@@ -252,6 +272,7 @@ export function AdminListingsPage() {
                   setSearch('');
                   setStatus('');
                   setType('');
+                  setSection('');
                   setPage(1);
                 }}
               >
@@ -289,6 +310,12 @@ export function AdminListingsPage() {
                         {item.title}
                       </Link>
                       <div className="small muted">#{item.id}</div>
+                      {item.section ? (
+                        <div className="small muted">
+                          القسم: {SECTION_LABELS[item.section] ?? item.section}
+                          {item.section === 'other' && item.sectionOther ? ` — ${item.sectionOther}` : ''}
+                        </div>
+                      ) : null}
                     </td>
                     <td>{item.ownerName}</td>
                     <td>

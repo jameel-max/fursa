@@ -15,7 +15,8 @@ import { api } from '../lib/api';
 import { compressImage } from '../lib/image';
 import { flattenCategories, useCatalog } from '../lib/catalog';
 import { useToast } from '../context/ToastContext';
-import type { Listing, ListingImage, ListingType, PriceType, ServiceKind } from '../types';
+import { LISTING_SECTIONS, SECTION_LABELS } from '../lib/sections';
+import type { Listing, ListingImage, ListingSection, ListingType, PriceType, ServiceKind } from '../types';
 import { getErrorMessage, getFieldErrors } from '../lib/validation';
 import { Button, buttonClass } from '../components/ui/Button';
 import { Alert, LoadingBlock } from '../components/ui/Feedback';
@@ -52,8 +53,14 @@ export function ListingFormPage() {
   const { showToast } = useToast();
   const { categories, units, governorates, loading: catalogLoading, error: catalogError } = useCatalog();
 
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const initialType = searchParams.get('type');
+  const initialSection = searchParams.get('section');
+  const validInitialSection = LISTING_SECTIONS.some((s) => s.value === initialSection)
+    ? (initialSection as ListingSection)
+    : '';
+  const [section, setSection] = useState<ListingSection | ''>(validInitialSection);
+  const [sectionOther, setSectionOther] = useState('');
   const [listingType, setListingType] = useState<ListingType>(
     initialType === 'request' || initialType === 'service' ? initialType : 'offer',
   );
@@ -119,6 +126,8 @@ export function ListingFormPage() {
           setServiceAreas(meta.serviceAreas ?? '');
           setDeliveryTime(meta.deliveryTime ?? '');
         }
+        if (data.section) setSection(data.section as ListingSection);
+        if (data.sectionOther) setSectionOther(data.sectionOther);
       } catch (err) {
         if (active) setError(getErrorMessage(err, 'تعذّر تحميل بيانات الإعلان.'));
       } finally {
@@ -214,6 +223,9 @@ export function ListingFormPage() {
       if (!unitId) errors.unitId = 'اختر وحدة القياس.';
     }
     if (!governorateId) errors.governorateId = 'اختر المحافظة.';
+    if (section === 'other' && sectionOther.trim().length < 2) {
+      errors.sectionOther = 'اكتب ما هو هذا القسم بالضبط.';
+    }
     if (priceType !== 'at_contact' && listingType !== 'request' && price.trim() === '') {
       errors.price = 'السعر مطلوب، أو اختر «السعر عند التواصل».';
     }
@@ -239,6 +251,8 @@ export function ListingFormPage() {
     if (description.trim()) formData.append('description', description.trim());
     if (priceType !== 'at_contact' && price.trim() !== '') formData.append('price', price);
     if (!isEdit) formData.append('listingType', listingType);
+    if (section) formData.append('section', section);
+    if (section === 'other' && sectionOther.trim()) formData.append('sectionOther', sectionOther.trim());
     if (listingType !== 'offer') {
       const meta: Record<string, string> = {};
       if (serviceKind) meta.serviceKind = serviceKind;
@@ -275,6 +289,47 @@ export function ListingFormPage() {
     );
   }
 
+  if (!isEdit && !section) {
+    return (
+      <div className="stack">
+        <PageHeader
+          eyebrow={
+            <Link to="/dashboard/listings" className="small row" style={{ gap: '0.35rem' }}>
+              <ArrowRight size={15} /> إعلاناتي
+            </Link>
+          }
+          title="ماذا تريد أن تعلن عنه؟"
+          description="اختر القسم الأقرب لما تريد بيعه أو طلبه أو تقديمه — سيظهر إعلانك في القسم المناسب."
+        />
+        <div className="grid grid-3">
+          {LISTING_SECTIONS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.value}
+                type="button"
+                className="tile"
+                style={{ cursor: 'pointer', textAlign: 'start', font: 'inherit', color: 'inherit', border: 'none', background: 'none', width: '100%' }}
+                onClick={() => setSection(item.value)}
+              >
+                <span className="tile-icon" aria-hidden="true">
+                  <Icon size={20} />
+                </span>
+                <span className="grow">
+                  {item.label}
+                  <span className="field-hint" style={{ display: 'block', fontWeight: 500 }}>
+                    {item.hint}
+                  </span>
+                </span>
+                <ArrowRight size={16} className="muted" aria-hidden="true" />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="stack">
       <PageHeader
@@ -295,6 +350,21 @@ export function ListingFormPage() {
       {error ? <Alert kind="error">{error}</Alert> : null}
 
       <form className="stack" onSubmit={onSubmit} noValidate>
+        <Card pad className="row between">
+          <div>
+            <div className="small muted">القسم</div>
+            <strong>{section ? SECTION_LABELS[section] ?? section : '—'}</strong>
+            {section === 'other' && sectionOther.trim() ? (
+              <div className="small muted">{sectionOther.trim()}</div>
+            ) : null}
+          </div>
+          {!isEdit ? (
+            <Button type="button" variant="secondary" size="sm" onClick={() => setSection('')}>
+              تغيير القسم
+            </Button>
+          ) : null}
+        </Card>
+
         <Card pad className="stack">
           <h2 style={{ fontSize: '1.1rem' }}>نوع الإعلان</h2>
           <div className="grid grid-3">
@@ -423,6 +493,19 @@ export function ListingFormPage() {
             maxLength={120}
             placeholder="مثال: وادي الأردن / دير علا"
           />
+
+          {section === 'other' ? (
+            <Input
+              label="ما هو القسم الذي تنتمي إليه؟"
+              required
+              value={sectionOther}
+              onChange={(event) => setSectionOther(event.target.value)}
+              error={fieldErrors.sectionOther}
+              maxLength={120}
+              placeholder="مثال: متجر أغذية، مقاولة زراعية، تأجير معدات…"
+              hint="سيصل وصفك هذا إلى فريق الإدارة للمراجعة."
+            />
+          ) : null}
 
           <div className="field">
             <span className="label">طريقة السعر</span>

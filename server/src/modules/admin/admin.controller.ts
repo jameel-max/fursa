@@ -68,6 +68,7 @@ export const listAdminListingsHandler = asyncHandler(async (req: Request, res: R
   const data = await adminService.listAdminListings({
     status: req.query.status ? String(req.query.status) : undefined,
     type: req.query.type ? String(req.query.type) : undefined,
+    section: req.query.section ? String(req.query.section) : undefined,
     search: req.query.search ? String(req.query.search) : undefined,
     page: req.query.page ? Number(req.query.page) : 1,
     limit: req.query.limit ? Number(req.query.limit) : 20,
@@ -104,4 +105,9 @@ export const updateAdminSpecialtyHandler = asyncHandler(async (req: Request, res
 export const setSpecialtyPermissionHandler = asyncHandler(async (req: Request, res: Response) => {
   const result = await adminService.setSpecialtyPermission(req.user!.id, String(req.params.code), req.body);
   return sendSuccess(res, result);
+});
+
+export const listSectionRequestsHandler = asyncHandler(async (_req: Request, res: Response) => {
+  const data = await adminService.listSectionRequests();
+  return sendSuccess(res, data);
 });

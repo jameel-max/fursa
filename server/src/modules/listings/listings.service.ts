@@ -8,6 +8,7 @@ import { getMyReviewForListing, getRatingSummary, type ReviewRecord } from '../r
 
 export interface ListingFilters {
   listingType?: 'offer' | 'request' | 'service';
+  section?: string;
   specialtyId?: number;
   categoryId?: number;
   governorateId?: number;
@@ -67,6 +68,8 @@ export interface ListingDetail {
   offerCount: number;
   myReview: ReviewRecord | null;
   serviceMeta: ServiceMeta | null;
+  section: string | null;
+  sectionOther: string | null;
 }
 
 export interface ServiceMeta {
@@ -222,6 +225,10 @@ export async function listListings(filters: ListingFilters) {
   if (filters.featured) {
     conditions.push('l.featured = 1');
   }
+  if (filters.section) {
+    conditions.push('l.section = ?');
+    params.push(filters.section);
+  }
   if (filters.specialtyId) {
     conditions.push(
       'EXISTS (SELECT 1 FROM user_specialties usf WHERE usf.user_id = l.user_id AND usf.specialty_id = ?)',
@@ -295,10 +302,12 @@ export async function listListings(filters: ListingFilters) {
     featured: number;
     expires_at: number;
     service_meta: string | null;
+    section: string | null;
+    section_other: string | null;
     created_at: number;
     updated_at: number;
   }>(
-    `SELECT l.id, l.user_id, l.listing_type, l.title, l.category_id, l.description, l.quantity, l.unit_id, l.price, l.price_type, l.governorate_id, l.area, l.status, l.featured, l.expires_at, l.service_meta, l.created_at, l.updated_at
+    `SELECT l.id, l.user_id, l.listing_type, l.title, l.category_id, l.description, l.quantity, l.unit_id, l.price, l.price_type, l.governorate_id, l.area, l.status, l.featured, l.expires_at, l.service_meta, l.section, l.section_other, l.created_at, l.updated_at
      FROM listings l
      JOIN users u ON u.id = l.user_id
      LEFT JOIN (
@@ -361,6 +370,8 @@ export async function listListings(filters: ListingFilters) {
     offerCount: offerCountMap.get(row.id) ?? 0,
     myReview: null,
     serviceMeta: parseServiceMeta(row.service_meta),
+    section: row.section ?? null,
+    sectionOther: row.section_other ?? null,
   }));
 
   return { items, total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) };
@@ -384,6 +395,8 @@ export async function getListingById(id: number, viewerId: number | undefined) {
     featured: number;
     expires_at: number;
     service_meta: string | null;
+    section: string | null;
+    section_other: string | null;
     created_at: number;
     updated_at: number;
   }>('SELECT * FROM listings WHERE id = ?', [id]);
@@ -417,6 +430,8 @@ export async function getListingById(id: number, viewerId: number | undefined) {
     offerCount,
     myReview,
     serviceMeta: parseServiceMeta(listing.service_meta),
+    section: listing.section ?? null,
+    sectionOther: listing.section_other ?? null,
   };
   return detail;
 }
@@ -445,6 +460,8 @@ export async function listMyListings(userId: number, status: string) {
     featured: number;
     expires_at: number;
     service_meta: string | null;
+    section: string | null;
+    section_other: string | null;
     created_at: number;
     updated_at: number;
   }>('SELECT * FROM listings WHERE ' + conditions.join(' AND ') + ' ORDER BY updated_at DESC', params);
@@ -497,6 +514,8 @@ export async function listMyListings(userId: number, status: string) {
     offerCount: offerCountMap.get(row.id) ?? 0,
     myReview: null,
     serviceMeta: parseServiceMeta(row.service_meta),
+    section: row.section ?? null,
+    sectionOther: row.section_other ?? null,
   }));
   return items;
 }
@@ -518,8 +537,8 @@ export async function createListing(userId: number, input: unknown, imageUrls: s
   const listingId = await withTransaction(async () => {
     const expiresAt = data.expiresAt ?? nowSec + expiryDays * 24 * 3600;
     const newListingId = await insertAndGetId(
-      `INSERT INTO listings (user_id, listing_type, title, category_id, description, quantity, unit_id, price, price_type, governorate_id, area, status, expires_at, service_meta, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO listings (user_id, listing_type, title, category_id, description, quantity, unit_id, price, price_type, governorate_id, area, status, expires_at, service_meta, section, section_other, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userId,
         data.listingType,
@@ -535,6 +554,8 @@ export async function createListing(userId: number, input: unknown, imageUrls: s
         'active',
         expiresAt,
         data.serviceMeta ? JSON.stringify(data.serviceMeta) : null,
+        data.section ?? null,
+        data.section === 'other' ? data.sectionOther ?? null : null,
         nowSec,
         nowSec,
       ],
@@ -618,6 +639,25 @@ export async function updateListing(userId: number, listingId: number, input: un
   if (data.serviceMeta !== undefined) {
     await execute('UPDATE listings SET service_meta = ?, updated_at = ? WHERE id = ?', [
       data.serviceMeta ? JSON.stringify(data.serviceMeta) : null,
+      Math.floor(Date.now() / 1000),
+      listingId,
+    ]);
+  }
+  if (data.section !== undefined || data.sectionOther !== undefined) {
+    const current = await queryOne<{ section: string | null; section_other: string | null }>(
+      'SELECT section, section_other FROM listings WHERE id = ?',
+      [listingId],
+    );
+    const nextSection = data.section !== undefined ? data.section : current?.section ?? null;
+    const nextOther =
+      nextSection === 'other'
+        ? data.sectionOther !== undefined
+          ? data.sectionOther
+          : current?.section_other ?? null
+        : null;
+    await execute('UPDATE listings SET section = ?, section_other = ?, updated_at = ? WHERE id = ?', [
+      nextSection,
+      nextOther,
       Math.floor(Date.now() / 1000),
       listingId,
     ]);

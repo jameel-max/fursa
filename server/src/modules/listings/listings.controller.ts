@@ -10,6 +10,7 @@ export const listListingsHandler = asyncHandler(async (req: Request, res: Respon
     listingType: req.query.listingType as 'offer' | 'request' | 'service' | undefined,
     categoryId: req.query.categoryId ? Number(req.query.categoryId) : undefined,
     specialtyId: req.query.specialtyId ? Number(req.query.specialtyId) : undefined,
+    section: req.query.section ? String(req.query.section) : undefined,
     governorateId: req.query.governorateId ? Number(req.query.governorateId) : undefined,
     area: req.query.area ? String(req.query.area) : undefined,
     minPrice: req.query.minPrice ? Number(req.query.minPrice) : undefined,

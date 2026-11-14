@@ -37,6 +37,18 @@ export async function seed() {
   } catch {
     // column already exists
   }
+  for (const column of ['section TEXT', 'section_other TEXT']) {
+    try {
+      await execute(`ALTER TABLE listings ADD COLUMN ${column}`);
+    } catch {
+      // column already exists
+    }
+  }
+  try {
+    await execute('CREATE INDEX IF NOT EXISTS idx_listings_section ON listings(section)');
+  } catch {
+    // index already exists
+  }
 
   // Reviews are per seller (reviewee), not per listing — dedupe then enforce uniqueness.
   try {

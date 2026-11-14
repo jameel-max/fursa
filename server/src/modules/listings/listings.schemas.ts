@@ -2,6 +2,22 @@ import { z } from 'zod';
 
 export const listingTypeSchema = z.enum(['offer', 'request', 'service']);
 
+export const listingSectionSchema = z.enum([
+  'vegetables',
+  'fruits',
+  'supplies',
+  'labor',
+  'transport',
+  'packing',
+  'other',
+]);
+
+const sectionField = listingSectionSchema.optional();
+const sectionOtherField = z.preprocess((value) => {
+  if (typeof value === 'string' && value.trim() === '') return undefined;
+  return value;
+}, z.string().trim().min(2, 'Describe the "other" section').max(120).optional());
+
 export const serviceKindSchema = z.enum([
   'transport',
   'packing',
@@ -96,6 +112,8 @@ export const createListingSchema = z
     area: z.string().max(120).optional(),
     expiresAt: expiresAtField.optional(),
     serviceMeta: serviceMetaField,
+    section: sectionField,
+    sectionOther: sectionOtherField,
   })
   .superRefine((value, ctx) => {
     if (value.listingType !== 'service') {
@@ -105,6 +123,9 @@ export const createListingSchema = z
       if (value.unitId === undefined) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Unit is required', path: ['unitId'] });
       }
+    }
+    if (value.section === 'other' && !value.sectionOther) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Describe the "other" section', path: ['sectionOther'] });
     }
   })
   .refine(
@@ -130,6 +151,8 @@ export const updateListingSchema = z
     status: z.enum(['active', 'paused', 'closed', 'expired']).optional(),
     expiresAt: expiresAtField.optional(),
     serviceMeta: serviceMetaField,
+    section: sectionField,
+    sectionOther: sectionOtherField,
   })
   .refine((value) => Object.values(value).some((field) => field !== undefined), { message: 'No fields provided to update' });
 

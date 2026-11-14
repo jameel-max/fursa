@@ -21,6 +21,7 @@ import {
   createAdminSpecialtyHandler,
   updateAdminSpecialtyHandler,
   setSpecialtyPermissionHandler,
+  listSectionRequestsHandler,
 } from './admin.controller';
 
 export const adminRouter = Router();
@@ -43,6 +44,7 @@ adminRouter.post('/ads', adImageUpload, createAdHandler);
 adminRouter.patch('/ads/:id', adImageUpload, updateAdHandler);
 adminRouter.delete('/ads/:id', deleteAdHandler);
 adminRouter.get('/specialties', listAdminSpecialtiesHandler);
+adminRouter.get('/section-requests', listSectionRequestsHandler);
 adminRouter.post('/specialties', adminLimiter, createAdminSpecialtyHandler);
 adminRouter.patch('/specialties/:id', adminLimiter, updateAdminSpecialtyHandler);
 adminRouter.patch('/specialties/:code/permissions', adminLimiter, setSpecialtyPermissionHandler);

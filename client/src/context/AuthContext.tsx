@@ -16,7 +16,7 @@ interface RegisterInput {
   password: string;
   passwordConfirm: string;
   termsAccepted: boolean;
-  specialties: Array<string | number>;
+  specialties?: Array<string | number>;
   customSpecialty?: string;
   businessName?: string;
   description?: string;

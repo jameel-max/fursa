@@ -20,6 +20,7 @@ import {
 import { api } from '../lib/api';
 import { useCatalog } from '../lib/catalog';
 import { formatDate, formatPrice, formatQuantity, listingStatusLabel, listingTypeLabel, priceTypeLabel, serviceKindLabel, timeAgo, whatsappLink } from '../lib/format';
+import { SECTION_LABELS } from '../lib/sections';
 import type { Listing, ListingList } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useFavorites } from '../context/FavoritesContext';
@@ -308,6 +309,15 @@ export function ListingDetailPage() {
                   <span className="k">المنطقة</span>
                   <span className="v">{listing.area ?? '—'}</span>
                 </li>
+                {listing.section ? (
+                  <li>
+                    <span className="k">القسم</span>
+                    <span className="v">
+                      {SECTION_LABELS[listing.section] ?? listing.section}
+                      {listing.section === 'other' && listing.sectionOther ? ` — ${listing.sectionOther}` : ''}
+                    </span>
+                  </li>
+                ) : null}
               </ul>
             </div>
 

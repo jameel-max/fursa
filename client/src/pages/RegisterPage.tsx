@@ -1,40 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import {
-  Briefcase,
-  Building2,
-  Factory,
-  Package,
-  Shapes,
-  ShoppingBag,
-  Sprout,
-  Store,
-  Truck,
-  UserPlus,
-  Warehouse,
-  Wrench,
-} from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import { AuthShell } from '../components/AuthShell';
 import { Button } from '../components/ui/Button';
 import { Alert } from '../components/ui/Feedback';
-import { Checkbox, Input, Select, Textarea } from '../components/ui/Form';
+import { Checkbox, Input } from '../components/ui/Form';
 import { useAuth } from '../context/AuthContext';
-import { useCatalog } from '../lib/catalog';
 import { getErrorMessage, getFieldErrors } from '../lib/validation';
-
-const SPECIALTY_ICONS: Record<string, typeof Sprout> = {
-  sprout: Sprout,
-  store: Store,
-  warehouse: Warehouse,
-  'shopping-bag': ShoppingBag,
-  factory: Factory,
-  truck: Truck,
-  package: Package,
-  wrench: Wrench,
-  building: Building2,
-  briefcase: Briefcase,
-  shapes: Shapes,
-};
 
 function safeNext(value: string | null): string {
   if (value && value.startsWith('/') && !value.startsWith('//')) return value;
@@ -46,48 +18,22 @@ export function RegisterPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const next = safeNext(searchParams.get('next'));
-  const { specialties: catalogSpecialties, governorates, loading: catalogLoading } = useCatalog();
 
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
-  const [businessName, setBusinessName] = useState('');
-  const [description, setDescription] = useState('');
-  const [governorateId, setGovernorateId] = useState('');
-  const [area, setArea] = useState('');
-  const [selectedSpecialties, setSelectedSpecialties] = useState<Array<number | string>>([]);
-  const [customSpecialty, setCustomSpecialty] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const otherSpecialty = catalogSpecialties.find((item) => item.code === 'other');
-  const otherSelected = otherSpecialty ? selectedSpecialties.includes(otherSpecialty.id) : false;
-
-  const toggleSpecialty = (specialtyId: number) => {
-    setSelectedSpecialties((current) => {
-      if (current.includes(specialtyId)) return current.filter((item) => item !== specialtyId);
-      if (current.length >= 3) {
-        setFieldErrors((errs) => ({ ...errs, specialties: 'الحد الأقصى 3 تخصصات — أزل تخصصاً أولاً.' }));
-        return current;
-      }
-      setFieldErrors((errs) => ({ ...errs, specialties: '' }));
-      return [...current, specialtyId];
-    });
-  };
-
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
     const nextErrors: Record<string, string> = {};
 
-    if (selectedSpecialties.length === 0) nextErrors.specialties = 'اختر تخصصاً واحداً على الأقل.';
-    if (otherSelected && customSpecialty.trim().length < 2) {
-      nextErrors.customSpecialty = 'اكتب المجال الذي تعمل فيه.';
-    }
     if (password !== passwordConfirm) nextErrors.passwordConfirm = 'كلمتا المرور غير متطابقتين.';
     if (!termsAccepted) nextErrors.termsAccepted = 'يجب الموافقة على الشروط والأحكام.';
     if (Object.keys(nextErrors).length > 0) {
@@ -104,12 +50,6 @@ export function RegisterPage() {
         password,
         passwordConfirm,
         termsAccepted,
-        specialties: selectedSpecialties,
-        customSpecialty: otherSelected ? customSpecialty.trim() : undefined,
-        businessName: businessName.trim() || undefined,
-        description: description.trim() || undefined,
-        governorateId: governorateId ? Number(governorateId) : undefined,
-        area: area.trim() || undefined,
       });
       const params = new URLSearchParams({ phone: phone.trim(), next });
       if (result.devCode) params.set('devCode', result.devCode);
@@ -188,103 +128,6 @@ export function RegisterPage() {
             error={fieldErrors.passwordConfirm}
           />
         </div>
-
-        <div className="field">
-          <span className="label">ما طبيعة عملك؟</span>
-          <p className="field-hint" style={{ marginTop: 0 }}>
-            اختر المجالات التي تعمل بها (1–3) حتى نخصص لك تجربة مناسبة.
-          </p>
-          <div className="spec-counter" aria-live="polite">
-            {selectedSpecialties.length} / 3 تخصصات مختارة
-          </div>
-          <div className="spec-grid">
-            {catalogLoading
-              ? Array.from({ length: 6 }).map((_, index) => (
-                  <span key={index} className="skeleton" style={{ height: 110, borderRadius: 14 }} />
-                ))
-              : catalogSpecialties
-                  .filter((specialty) => specialty.isActive)
-                  .map((specialty) => {
-                    const active = selectedSpecialties.includes(specialty.id);
-                    const Icon = SPECIALTY_ICONS[specialty.icon ?? ''] ?? Shapes;
-                    const disabled = !active && selectedSpecialties.length >= 3;
-                    return (
-                      <button
-                        key={specialty.id}
-                        type="button"
-                        className={active ? 'spec-card active' : 'spec-card'}
-                        aria-pressed={active}
-                        disabled={disabled}
-                        onClick={() => toggleSpecialty(specialty.id)}
-                      >
-                        <span className="spec-card-icon">
-                          <Icon size={22} />
-                        </span>
-                        <strong>{specialty.name}</strong>
-                        {specialty.description ? <small>{specialty.description}</small> : null}
-                      </button>
-                    );
-                  })}
-          </div>
-          {otherSelected ? (
-            <div className="mt-2">
-              <Input
-                label="ما مجالك بالضبط؟"
-                required
-                value={customSpecialty}
-                onChange={(event) => {
-                  setCustomSpecialty(event.target.value);
-                  setFieldErrors((errs) => ({ ...errs, customSpecialty: '' }));
-                }}
-                error={fieldErrors.customSpecialty}
-                placeholder="مثال: متجر أغذية، مقاولة زراعية…"
-                maxLength={60}
-              />
-            </div>
-          ) : null}
-          {fieldErrors.specialties ? (
-            <span className="field-error" role="alert">
-              {fieldErrors.specialties}
-            </span>
-          ) : null}
-        </div>
-
-        <div className="form-grid">
-          <Input
-            label="اسم النشاط التجاري (اختياري)"
-            value={businessName}
-            onChange={(event) => setBusinessName(event.target.value)}
-            error={fieldErrors.businessName}
-            placeholder="مثال: مزرعة الوادي الأخضر"
-          />
-          <Select
-            label="المحافظة (اختياري)"
-            value={governorateId}
-            onChange={(event) => setGovernorateId(event.target.value)}
-            error={fieldErrors.governorateId}
-            options={governorates.map((governorate) => ({ value: governorate.id, label: governorate.nameAr }))}
-            placeholder="اختر المحافظة"
-          />
-        </div>
-
-        <div className="form-grid">
-          <Input
-            label="المنطقة (اختياري)"
-            value={area}
-            onChange={(event) => setArea(event.target.value)}
-            error={fieldErrors.area}
-            placeholder="مثال: وادي الأردن / دير علا"
-          />
-        </div>
-
-        <Textarea
-          label="نبذة عن نشاطك (اختياري)"
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
-          error={fieldErrors.description}
-          maxLength={2000}
-          placeholder="عرّف بنشاطك، منتجاتك، أو الخدمات التي تقدمها."
-        />
 
         <div>
           <Checkbox

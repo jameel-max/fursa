@@ -2,6 +2,8 @@ export type AccountStatus = 'pending' | 'active' | 'suspended' | 'banned';
 export type UserRole = 'user' | 'admin';
 export type ListingType = 'offer' | 'request' | 'service';
 
+export type ListingSection = 'vegetables' | 'fruits' | 'supplies' | 'labor' | 'transport' | 'packing' | 'other';
+
 export type ServiceKind = 'transport' | 'packing' | 'consulting' | 'maintenance' | 'harvesting' | 'irrigation' | 'other';
 
 export interface ServiceMeta {
@@ -98,6 +100,8 @@ export interface Listing {
   offerCount: number;
   myReview?: Review | null;
   serviceMeta?: ServiceMeta | null;
+  section?: ListingSection | string | null;
+  sectionOther?: string | null;
 }
 
 export interface Review {
@@ -263,7 +267,7 @@ export interface Paged<T> {
 export interface AdminStats {
   users: { total: number; newThisMonth: number; pending: number; active: number; suspended: number };
   farmers?: number;
-  listings: { total: number; offers: number; requests: number; active: number; paused: number; closed: number; expired: number };
+  listings: { total: number; offers: number; requests: number; services?: number; otherSections?: number; active: number; paused: number; closed: number; expired: number };
   offers: { total: number; new: number; negotiation: number; accepted: number; rejected: number; cancelled: number };
   subscriptions: { active: number; canceled: number; expired: number };
   revenue: { total: number; successful: number; pending: number };
@@ -288,7 +292,15 @@ export interface AdminListing {
   featured?: boolean;
   price: number | null;
   ownerName: string;
+  section?: string | null;
+  sectionOther?: string | null;
   createdAt: number;
+}
+
+export interface SectionRequest {
+  sectionOther: string;
+  count: number;
+  latestAt: number;
 }
 
 export interface AdminSubscription {

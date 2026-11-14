@@ -12,7 +12,7 @@ import {
   Users,
 } from 'lucide-react';
 import { api } from '../../lib/api';
-import type { AdminStats } from '../../types';
+import type { AdminStats, SectionRequest } from '../../types';
 import { auditActionLabel, formatDateTime, formatNumber, formatPrice, timeAgo } from '../../lib/format';
 import { Button } from '../../components/ui/Button';
 import { Alert, LoadingBlock } from '../../components/ui/Feedback';
@@ -29,6 +29,7 @@ function BreakdownRow({ label, value }: { label: string; value: number }) {
 
 export function AdminDashboardPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [sectionRequests, setSectionRequests] = useState<SectionRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,8 +37,12 @@ export function AdminDashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await api<AdminStats>('/admin/stats');
+      const [data, sections] = await Promise.all([
+        api<AdminStats>('/admin/stats'),
+        api<{ items: SectionRequest[] }>('/admin/section-requests').catch(() => ({ items: [] })),
+      ]);
       setStats(data);
+      setSectionRequests(sections.items);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'تعذّر تحميل إحصائيات المنصة.');
     } finally {
@@ -148,6 +153,25 @@ export function AdminDashboardPage() {
               </Link>
             </Card>
           </div>
+
+          {sectionRequests.length > 0 ? (
+            <Card pad className="stack-sm">
+              <SectionHead
+                title="أقسام «أخرى» المطلوبة"
+                description="أوصاف كتبها المستخدمون عند اختيارهم قسم «أخرى» — قد تكون أقساماً جديدة تستحق الإضافة."
+              />
+              <div className="chip-row">
+                {sectionRequests.map((item) => (
+                  <span key={item.sectionOther} className="chip" title={`${item.count} إعلان — آخرها ${timeAgo(item.latestAt)}`}>
+                    {item.sectionOther} ({item.count})
+                  </span>
+                ))}
+              </div>
+              <Link to="/admin/listings?section=other" className="small" style={{ color: 'var(--green-700)', fontWeight: 700 }}>
+                عرض إعلانات قسم «أخرى» ←
+              </Link>
+            </Card>
+          ) : null}
 
           <section>
             <SectionHead

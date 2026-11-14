@@ -5,7 +5,7 @@ import { createSpecialtySchema, updateSpecialtySchema, setSpecialtyPermissionSch
 
 export interface AdminStats {
   users: { total: number; newThisMonth: number; pending: number; active: number; suspended: number };
-  listings: { total: number; offers: number; requests: number; active: number; paused: number; closed: number; expired: number };
+  listings: { total: number; offers: number; requests: number; services: number; otherSections: number; active: number; paused: number; closed: number; expired: number };
   offers: { total: number; new: number; negotiation: number; accepted: number; rejected: number; cancelled: number };
   subscriptions: { active: number; canceled: number; expired: number };
   revenue: { total: number; successful: number; pending: number };
@@ -28,6 +28,7 @@ export async function getAdminStats() {
             SUM(CASE WHEN listing_type = 'offer' THEN 1 ELSE 0 END) AS offers,
             SUM(CASE WHEN listing_type = 'request' THEN 1 ELSE 0 END) AS requests,
             SUM(CASE WHEN listing_type = 'service' THEN 1 ELSE 0 END) AS services,
+            SUM(CASE WHEN section = 'other' AND section_other IS NOT NULL THEN 1 ELSE 0 END) AS other_sections,
             SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active,
             SUM(CASE WHEN status = 'paused' THEN 1 ELSE 0 END) AS paused,
             SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) AS closed,
@@ -84,6 +85,8 @@ export async function getAdminStats() {
       total: Number(listingsRow.total ?? 0),
       offers: Number(listingsRow.offers ?? 0),
       requests: Number(listingsRow.requests ?? 0),
+      services: Number((listingsRow as { services?: number }).services ?? 0),
+      otherSections: Number((listingsRow as { other_sections?: number }).other_sections ?? 0),
       active: Number(listingsRow.active ?? 0),
       paused: Number(listingsRow.paused ?? 0),
       closed: Number(listingsRow.closed ?? 0),
@@ -223,7 +226,7 @@ export async function listAdminSubscriptions() {
   }));
 }
 
-export async function listAdminListings(filters: { status?: string; type?: string; search?: string; page?: number; limit?: number }) {
+export async function listAdminListings(filters: { status?: string; type?: string; section?: string; search?: string; page?: number; limit?: number }) {
   const page = Math.max(1, filters.page ?? 1);
   const limit = Math.min(50, Math.max(1, filters.limit ?? 20));
   const offset = (page - 1) * limit;
@@ -236,6 +239,10 @@ export async function listAdminListings(filters: { status?: string; type?: strin
   if (filters.type) {
     conditions.push('l.listing_type = ?');
     params.push(filters.type);
+  }
+  if (filters.section) {
+    conditions.push('l.section = ?');
+    params.push(filters.section);
   }
   if (filters.search) {
     conditions.push('(l.title LIKE ? OR l.description LIKE ?)');
@@ -251,10 +258,12 @@ export async function listAdminListings(filters: { status?: string; type?: strin
     featured: number;
     quantity: number;
     price: number;
+    section: string | null;
+    section_other: string | null;
     created_at: number;
     updated_at: number;
     owner_name: string;
-  }>(`SELECT l.id, l.user_id, l.listing_type, l.title, l.status, l.featured, l.quantity, l.price, l.created_at, l.updated_at, u.full_name AS owner_name FROM listings l JOIN users u ON u.id = l.user_id WHERE ${whereClause} ORDER BY l.updated_at DESC LIMIT ? OFFSET ?`, [...params, limit, offset]);
+  }>(`SELECT l.id, l.user_id, l.listing_type, l.title, l.status, l.featured, l.quantity, l.price, l.section, l.section_other, l.created_at, l.updated_at, u.full_name AS owner_name FROM listings l JOIN users u ON u.id = l.user_id WHERE ${whereClause} ORDER BY l.updated_at DESC LIMIT ? OFFSET ?`, [...params, limit, offset]);
   const total = Number(((await query<{ total: number }>(`SELECT COUNT(*) AS total FROM listings l WHERE ${whereClause}`, params)))[0]?.total ?? 0);
   const items = rows.map((row) => ({
     id: row.id,
@@ -265,6 +274,8 @@ export async function listAdminListings(filters: { status?: string; type?: strin
     featured: row.featured === 1,
     quantity: row.quantity,
     price: row.price,
+    section: row.section,
+    sectionOther: row.section_other,
     ownerName: row.owner_name,
     createdAt: Math.floor(row.created_at),
     updatedAt: Math.floor(row.updated_at),
@@ -594,4 +605,22 @@ export async function setSpecialtyPermission(adminUserId: number, specialtyCode:
      JSON.stringify({ specialtyCode, permissionCode }), Math.floor(Date.now() / 1000)],
   );
   return { success: true };
+}
+
+export async function listSectionRequests() {
+  const rows = await query<{ section_other: string; count: number; latest: number }>(
+    `SELECT section_other, COUNT(*) AS count, MAX(created_at) AS latest
+     FROM listings
+     WHERE section = 'other' AND section_other IS NOT NULL
+     GROUP BY section_other
+     ORDER BY count DESC, latest DESC
+     LIMIT 100`,
+  );
+  return {
+    items: rows.map((row) => ({
+      sectionOther: row.section_other,
+      count: Number(row.count),
+      latestAt: Number(row.latest),
+    })),
+  };
 }
