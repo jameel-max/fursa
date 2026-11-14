@@ -8,6 +8,7 @@ import { getMyReviewForListing, getRatingSummary, type ReviewRecord } from '../r
 
 export interface ListingFilters {
   listingType?: 'offer' | 'request' | 'service';
+  specialtyId?: number;
   categoryId?: number;
   governorateId?: number;
   area?: string;
@@ -148,6 +149,12 @@ export async function listListings(filters: ListingFilters) {
   }
   if (filters.featured) {
     conditions.push('l.featured = 1');
+  }
+  if (filters.specialtyId) {
+    conditions.push(
+      'EXISTS (SELECT 1 FROM user_specialties usf WHERE usf.user_id = l.user_id AND usf.specialty_id = ?)',
+    );
+    params.push(filters.specialtyId);
   }
   if (filters.categoryId) {
     conditions.push('l.category_id = ?');

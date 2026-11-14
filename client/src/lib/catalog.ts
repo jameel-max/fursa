@@ -1,6 +1,34 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Briefcase,
+  Building2,
+  Factory,
+  Package,
+  Shapes,
+  ShoppingBag,
+  Sprout,
+  Store,
+  Truck,
+  Warehouse,
+  Wrench,
+  type LucideIcon,
+} from 'lucide-react';
 import { api } from '../lib/api';
 import type { CategoryNode, Governorate, Specialty, Unit } from '../types';
+
+export const SPECIALTY_ICONS: Record<string, LucideIcon> = {
+  sprout: Sprout,
+  store: Store,
+  warehouse: Warehouse,
+  'shopping-bag': ShoppingBag,
+  factory: Factory,
+  truck: Truck,
+  package: Package,
+  wrench: Wrench,
+  building: Building2,
+  briefcase: Briefcase,
+  shapes: Shapes,
+};
 
 let cache: {
   categories?: CategoryNode[];

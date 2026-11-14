@@ -24,7 +24,7 @@ export function MarketPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { ids: favoriteIds, toggle: toggleFavorite } = useFavorites();
-  const { categories, units, governorates, unitMap, governorateMap, categoryMap } = useCatalog();
+  const { categories, units, governorates, specialties, unitMap, governorateMap, categoryMap } = useCatalog();
 
   const [draft, setDraft] = useState({
     search: searchParams.get('search') ?? '',
@@ -64,7 +64,7 @@ export function MarketPage() {
       setError(null);
       const source = new URLSearchParams(queryString);
       const params = new URLSearchParams();
-      for (const key of ['search', 'categoryId', 'governorateId', 'minPrice', 'maxPrice', 'sort', 'page']) {
+      for (const key of ['search', 'categoryId', 'specialtyId', 'governorateId', 'minPrice', 'maxPrice', 'sort', 'page']) {
         const value = source.get(key);
         if (value) params.set(key, value);
       }
@@ -94,6 +94,8 @@ export function MarketPage() {
     if (draft.minPrice) params.set('minPrice', draft.minPrice);
     if (draft.maxPrice) params.set('maxPrice', draft.maxPrice);
     if (draft.sort && draft.sort !== 'rating') params.set('sort', draft.sort);
+    const specialtyId = searchParams.get('specialtyId');
+    if (specialtyId) params.set('specialtyId', specialtyId);
     setSearchParams(params);
   };
 
@@ -119,10 +121,15 @@ export function MarketPage() {
 
   const flatCategories = flattenCategories(categories);
   const activeType = searchParams.get('type');
+  const activeSpecialtyId = searchParams.get('specialtyId');
+  const activeSpecialty = activeSpecialtyId
+    ? specialties.find((s) => String(s.id) === activeSpecialtyId)
+    : undefined;
   const hasFilters = Array.from(searchParams.keys()).some((key) => key !== 'page');
   const activeFilterCount = [
     searchParams.get('type'),
     searchParams.get('categoryId'),
+    searchParams.get('specialtyId'),
     searchParams.get('governorateId'),
     searchParams.get('minPrice'),
     searchParams.get('maxPrice'),
@@ -293,9 +300,27 @@ export function MarketPage() {
         <p className="muted small">
           {loading || !data ? 'جارٍ تحميل النتائج…' : `${data.total} نتيجة — الصفحة ${data.page} من ${data.totalPages}`}
         </p>
-        {activeType ? (
-          <span className="badge badge-outline">{listingTypeLabel[activeType as ListingType] ?? activeType}</span>
-        ) : null}
+        <span className="row" style={{ gap: '0.4rem' }}>
+          {activeType ? (
+            <span className="badge badge-outline">{listingTypeLabel[activeType as ListingType] ?? activeType}</span>
+          ) : null}
+          {activeSpecialty ? (
+            <button
+              type="button"
+              className="badge badge-outline"
+              style={{ cursor: 'pointer' }}
+              title="إزالة فلتر التخصص"
+              onClick={() => {
+                const params = new URLSearchParams(searchParams);
+                params.delete('specialtyId');
+                params.delete('page');
+                setSearchParams(params);
+              }}
+            >
+              {activeSpecialty.name} ✕
+            </button>
+          ) : null}
+        </span>
       </div>
 
       {error ? (

@@ -9,6 +9,7 @@ export const listListingsHandler = asyncHandler(async (req: Request, res: Respon
   const data = await listingsService.listListings({
     listingType: req.query.listingType as 'offer' | 'request' | 'service' | undefined,
     categoryId: req.query.categoryId ? Number(req.query.categoryId) : undefined,
+    specialtyId: req.query.specialtyId ? Number(req.query.specialtyId) : undefined,
     governorateId: req.query.governorateId ? Number(req.query.governorateId) : undefined,
     area: req.query.area ? String(req.query.area) : undefined,
     minPrice: req.query.minPrice ? Number(req.query.minPrice) : undefined,
