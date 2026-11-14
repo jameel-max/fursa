@@ -3,11 +3,12 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { AdBanner } from '../types';
 
 const ROTATE_MS = 10000;
+const SWIPE_THRESHOLD = 40;
 
 type Frame = { left: number; top: number; width: number; height: number };
 
 function AdSlide({ ad }: { ad: AdBanner }) {
-  const wrapRef = useRef<HTMLElement | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const [frame, setFrame] = useState<Frame | null>(null);
 
@@ -35,43 +36,37 @@ function AdSlide({ ad }: { ad: AdBanner }) {
     return () => window.removeEventListener('resize', compute);
   });
 
-  const media = (
-    <>
+  const external = ad.linkUrl ? /^https?:\/\//i.test(ad.linkUrl) : false;
+  const frameStyle = frame
+    ? { left: frame.left, top: frame.top, width: frame.width, height: frame.height }
+    : undefined;
+
+  return (
+    <div className="hero-ad-slide" ref={wrapRef}>
       <img ref={imgRef} src={ad.imageUrl} alt={ad.title} className="hero-ad-img" onLoad={compute} />
+      {frame && ad.linkUrl ? (
+        <a
+          className="hero-ad-hit"
+          style={frameStyle}
+          href={ad.linkUrl}
+          target={external ? '_blank' : undefined}
+          rel={external ? 'noopener noreferrer' : undefined}
+          aria-label={ad.title || 'فتح الإعلان'}
+        />
+      ) : null}
       {frame ? (
-        <div className="hero-ad-frame" style={{ left: frame.left, top: frame.top, width: frame.width, height: frame.height }}>
+        <div className="hero-ad-frame" style={frameStyle}>
           <div className="hero-ad-overlay" />
           {ad.title ? <div className="hero-ad-caption">{ad.title}</div> : null}
         </div>
       ) : null}
-    </>
+    </div>
   );
-
-  const slideProps = {
-    className: 'hero-ad-slide',
-    ref: (el: HTMLElement | null) => {
-      wrapRef.current = el;
-    },
-  };
-
-  if (ad.linkUrl) {
-    const external = /^https?:\/\//i.test(ad.linkUrl);
-    return (
-      <a
-        {...slideProps}
-        href={ad.linkUrl}
-        target={external ? '_blank' : undefined}
-        rel={external ? 'noopener noreferrer' : undefined}
-      >
-        {media}
-      </a>
-    );
-  }
-  return <div {...slideProps}>{media}</div>;
 }
 
 export function BannerCarousel({ ads }: { ads: AdBanner[] }) {
   const [index, setIndex] = useState(0);
+  const touchX = useRef<number | null>(null);
 
   useEffect(() => {
     setIndex(0);
@@ -88,8 +83,29 @@ export function BannerCarousel({ ads }: { ads: AdBanner[] }) {
   const current = index % ads.length;
   const go = (delta: number) => setIndex((c) => (c + delta + ads.length) % ads.length);
 
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchX.current = e.touches[0]?.clientX ?? null;
+  };
+
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchX.current == null || ads.length <= 1) {
+      touchX.current = null;
+      return;
+    }
+    const dx = (e.changedTouches[0]?.clientX ?? touchX.current) - touchX.current;
+    touchX.current = null;
+    if (dx <= -SWIPE_THRESHOLD) go(1);
+    else if (dx >= SWIPE_THRESHOLD) go(-1);
+  };
+
   return (
-    <div className="hero-ads" aria-roledescription="carousel" aria-label="إعلانات">
+    <div
+      className="hero-ads"
+      aria-roledescription="carousel"
+      aria-label="إعلانات"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
       <div className="hero-ads-track" style={{ transform: `translateX(${-current * 100}%)` }}>
         {ads.map((ad) => (
           <AdSlide key={ad.id} ad={ad} />
@@ -97,6 +113,8 @@ export function BannerCarousel({ ads }: { ads: AdBanner[] }) {
       </div>
       {ads.length > 1 ? (
         <>
+          <button type="button" className="hero-ad-zone hero-ad-zone-prev" onClick={() => go(-1)} aria-label="الإعلان السابق" />
+          <button type="button" className="hero-ad-zone hero-ad-zone-next" onClick={() => go(1)} aria-label="الإعلان التالي" />
           <button type="button" className="hero-ad-arrow hero-ad-arrow-prev" onClick={() => go(-1)} aria-label="الإعلان السابق">
             <ChevronRight size={22} />
           </button>

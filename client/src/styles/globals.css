@@ -736,6 +736,39 @@ button {
   position: absolute;
 }
 
+.hero-ad-hit {
+  position: absolute;
+  display: block;
+  z-index: 2;
+}
+
+.hero-ad-overlay {
+  pointer-events: none;
+}
+
+.hero-ad-caption {
+  pointer-events: none;
+}
+
+.hero-ad-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 14%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  z-index: 6;
+}
+
+.hero-ad-zone-prev { inset-inline-start: 0; }
+.hero-ad-zone-next { inset-inline-end: 0; }
+
+@media (max-width: 720px) {
+  .hero-ad-zone { display: none; }
+}
+
 .hero-ad-img {
   width: 100%;
   height: 100%;
@@ -784,7 +817,7 @@ button {
   justify-content: center;
   cursor: pointer;
   box-shadow: var(--shadow);
-  z-index: 2;
+  z-index: 8;
 }
 
 .hero-ad-arrow:hover { background: #fff; }
@@ -798,7 +831,7 @@ button {
   transform: translateX(-50%);
   display: flex;
   gap: 0.4rem;
-  z-index: 2;
+  z-index: 8;
 }
 
 .hero-ad-dots button {
