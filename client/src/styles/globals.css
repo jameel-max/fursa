@@ -2690,3 +2690,63 @@ button {
   color: var(--muted);
   line-height: 1.45;
 }
+
+/* ---------- Global UX polish ---------- */
+
+::selection {
+  background: var(--green-100);
+  color: var(--green-900);
+}
+
+a,
+button,
+input,
+select,
+textarea,
+summary {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Long unbroken values (section descriptions, names) must not overflow cards */
+.spec-list li {
+  flex-wrap: wrap;
+}
+.spec-list .v {
+  overflow-wrap: anywhere;
+  text-align: end;
+}
+.conv-head > span:first-child {
+  min-width: 0;
+}
+
+/* Prevent any stray element from causing horizontal page scroll */
+html,
+body {
+  overflow-x: clip;
+}
+
+/* Larger touch target for rating stars */
+.star-btn {
+  min-width: 40px;
+  min-height: 40px;
+  justify-content: center;
+  padding: 0.3rem;
+}
+
+/* Chat composer: let the input shrink instead of overflowing on narrow screens */
+.thread-compose input {
+  min-width: 0;
+}

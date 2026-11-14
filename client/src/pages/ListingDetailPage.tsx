@@ -260,9 +260,11 @@ export function ListingDetailPage() {
                   {listing.area ? ` · ${listing.area}` : ''}
                 </span>
               ) : null}
-              <span>
-                <Package size={15} /> {formatQuantity(listing.quantity, unitName)}
-              </span>
+              {listing.listingType !== 'service' && listing.quantity > 0 ? (
+                <span>
+                  <Package size={15} /> {formatQuantity(listing.quantity, unitName)}
+                </span>
+              ) : null}
               <span>
                 <ShoppingBasket size={15} /> {listing.offerCount} عرض
               </span>
@@ -288,20 +290,24 @@ export function ListingDetailPage() {
                   <span className="k">نوع الإعلان</span>
                   <span className="v">{listingTypeLabel[listing.listingType]}</span>
                 </li>
-                <li>
-                  <span className="k">الكمية المتاحة</span>
-                  <span className="v">{formatQuantity(listing.quantity, unitName)}</span>
-                </li>
+                {listing.listingType !== 'service' ? (
+                  <li>
+                    <span className="k">الكمية</span>
+                    <span className="v">{formatQuantity(listing.quantity, unitName)}</span>
+                  </li>
+                ) : null}
                 <li>
                   <span className="k">طريقة السعر</span>
                   <span className="v">{priceTypeLabel[listing.priceType]}</span>
                 </li>
               </ul>
               <ul className="spec-list">
-                <li>
-                  <span className="k">الفئة</span>
-                  <span className="v">{categoryName ?? '—'}</span>
-                </li>
+                {categoryName ? (
+                  <li>
+                    <span className="k">الفئة</span>
+                    <span className="v">{categoryName}</span>
+                  </li>
+                ) : null}
                 <li>
                   <span className="k">المحافظة</span>
                   <span className="v">{governorateName ?? '—'}</span>
