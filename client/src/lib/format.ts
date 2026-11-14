@@ -64,6 +64,7 @@ export function timeAgo(unixSeconds: number | null | undefined): string {
 export const listingTypeLabel: Record<ListingType, string> = {
   offer: 'عرض بيع',
   request: 'طلب شراء',
+  service: 'خدمة',
 };
 
 export const listingStatusLabel: Record<ListingStatus, string> = {

@@ -116,6 +116,7 @@ export function HomePage() {
       <div className="hero-chips">
         <Link to="/market?type=offer">عروض البيع</Link>
         <Link to="/market?type=request">طلبات الشراء</Link>
+        <Link to="/market?type=service">الخدمات</Link>
         {rootCategories.slice(0, 2).map((category) => (
           <Link key={category.id} to={`/market?categoryId=${category.id}`}>
             {category.name}

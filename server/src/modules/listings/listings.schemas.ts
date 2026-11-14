@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const listingTypeSchema = z.enum(['offer', 'request']);
+export const listingTypeSchema = z.enum(['offer', 'request', 'service']);
 
 export const priceTypeSchema = z.enum(['fixed', 'negotiable', 'at_contact']);
 
@@ -67,7 +67,7 @@ export const createListingSchema = z
   .refine(
     (value) => {
       if (value.priceType === 'at_contact') return true;
-      if (value.listingType === 'offer') return value.price !== undefined && value.price !== null;
+      if (value.listingType !== 'request') return value.price !== undefined && value.price !== null;
       return true;
     },
     { message: 'Price is required unless the price type is "at contact"', path: ['price'] },

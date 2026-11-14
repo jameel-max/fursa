@@ -351,6 +351,7 @@ button {
 
 .badge-offer { background: var(--success-soft); color: var(--success); }
 .badge-request { background: var(--info-soft); color: var(--info); }
+.badge-service { background: var(--warning-soft, #fdf0dd); color: var(--warning, #b45309); }
 .badge-gold { background: var(--gold-100); color: var(--gold-600); }
 .badge-muted { background: #eef1ea; color: var(--muted); }
 .badge-danger { background: var(--danger-soft); color: var(--danger); }

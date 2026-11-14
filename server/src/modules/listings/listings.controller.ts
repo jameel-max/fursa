@@ -7,7 +7,7 @@ import { createListingSchema, updateListingSchema, listingStatusSchema, offerSch
 
 export const listListingsHandler = asyncHandler(async (req: Request, res: Response) => {
   const data = await listingsService.listListings({
-    listingType: req.query.listingType as 'offer' | 'request' | undefined,
+    listingType: req.query.listingType as 'offer' | 'request' | 'service' | undefined,
     categoryId: req.query.categoryId ? Number(req.query.categoryId) : undefined,
     governorateId: req.query.governorateId ? Number(req.query.governorateId) : undefined,
     area: req.query.area ? String(req.query.area) : undefined,

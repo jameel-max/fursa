@@ -1,6 +1,6 @@
 export type AccountStatus = 'pending' | 'active' | 'suspended' | 'banned';
 export type UserRole = 'user' | 'admin';
-export type ListingType = 'offer' | 'request';
+export type ListingType = 'offer' | 'request' | 'service';
 export type ListingStatus = 'active' | 'paused' | 'closed' | 'expired';
 export type PriceType = 'fixed' | 'negotiable' | 'at_contact';
 export type OfferStatus = 'new' | 'negotiation' | 'accepted' | 'rejected' | 'cancelled';

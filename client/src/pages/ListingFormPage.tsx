@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   ArrowRight,
   ImagePlus,
@@ -8,6 +8,7 @@ import {
   Save,
   ShoppingBasket,
   Trash2,
+  Truck,
   UploadCloud,
 } from 'lucide-react';
 import { api } from '../lib/api';
@@ -41,7 +42,11 @@ export function ListingFormPage() {
   const { showToast } = useToast();
   const { categories, units, governorates, loading: catalogLoading, error: catalogError } = useCatalog();
 
-  const [listingType, setListingType] = useState<ListingType>('offer');
+  const [searchParams] = useSearchParams();
+  const initialType = searchParams.get('type');
+  const [listingType, setListingType] = useState<ListingType>(
+    initialType === 'request' || initialType === 'service' ? initialType : 'offer',
+  );
   const [title, setTitle] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -184,8 +189,8 @@ export function ListingFormPage() {
     if (!quantity || Number(quantity) < 1) errors.quantity = 'أدخل كمية صحيحة أكبر من صفر.';
     if (!unitId) errors.unitId = 'اختر وحدة القياس.';
     if (!governorateId) errors.governorateId = 'اختر المحافظة.';
-    if (priceType !== 'at_contact' && listingType === 'offer' && price.trim() === '') {
-      errors.price = 'السعر مطلوب لعرض البيع، أو اختر «السعر عند التواصل».';
+    if (priceType !== 'at_contact' && listingType !== 'request' && price.trim() === '') {
+      errors.price = 'السعر مطلوب، أو اختر «السعر عند التواصل».';
     }
     if (price.trim() !== '' && (Number.isNaN(Number(price)) || Number(price) < 0)) {
       errors.price = 'أدخل سعراً صحيحاً.';
@@ -258,7 +263,7 @@ export function ListingFormPage() {
       <form className="stack" onSubmit={onSubmit} noValidate>
         <Card pad className="stack">
           <h2 style={{ fontSize: '1.1rem' }}>نوع الإعلان</h2>
-          <div className="grid grid-2">
+          <div className="grid grid-3">
             <button
               type="button"
               className={listingType === 'offer' ? 'type-choice active' : 'type-choice'}
@@ -289,6 +294,21 @@ export function ListingFormPage() {
                 <small>أبحث عن كمية محددة وأريد استقبال عروض.</small>
               </span>
             </button>
+            <button
+              type="button"
+              className={listingType === 'service' ? 'type-choice active' : 'type-choice'}
+              onClick={() => setListingType('service')}
+              aria-pressed={listingType === 'service'}
+              disabled={isEdit}
+            >
+              <span className="type-choice-icon">
+                <Truck size={21} />
+              </span>
+              <span>
+                <strong>خدمة</strong>
+                <small>أقدّم خدمة زراعية أو نقل أو تعبئة وأريد تسويقها.</small>
+              </span>
+            </button>
           </div>
           {isEdit ? <p className="small muted">لا يمكن تغيير نوع الإعلان بعد النشر.</p> : null}
         </Card>
@@ -303,7 +323,13 @@ export function ListingFormPage() {
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             error={fieldErrors.title}
-            placeholder={listingType === 'offer' ? 'مثال: طماطم بيضاء طازجة - عروة أولى' : 'مثال: مطلوب 2 طن بصل أحمر'}
+            placeholder={
+            listingType === 'request'
+              ? 'مثال: مطلوب 2 طن بصل أحمر'
+              : listingType === 'service'
+                ? 'مثال: خدمة نقل محاصيل داخل المملكة'
+                : 'مثال: طماطم بيضاء طازجة - عروة أولى'
+          }
             hint={`${title.length}/120`}
           />
 

@@ -7,7 +7,7 @@ import { canPublish, getEffectiveSubscription } from '../subscriptions/subscript
 import { getMyReviewForListing, getRatingSummary, type ReviewRecord } from '../reviews/reviews.service';
 
 export interface ListingFilters {
-  listingType?: 'offer' | 'request';
+  listingType?: 'offer' | 'request' | 'service';
   categoryId?: number;
   governorateId?: number;
   area?: string;

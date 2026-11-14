@@ -3,7 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Funnel, Leaf, RotateCcw, Search, SlidersHorizontal } from 'lucide-react';
 import { api, toQuery } from '../lib/api';
 import { useCatalog, flattenCategories } from '../lib/catalog';
-import type { Listing, ListingList } from '../types';
+import { listingTypeLabel } from '../lib/format';
+import type { Listing, ListingList, ListingType } from '../types';
 import { ListingCard } from '../components/ListingCard';
 import { Button, buttonClass } from '../components/ui/Button';
 import { Alert, CardsSkeleton, EmptyState } from '../components/ui/Feedback';
@@ -136,11 +137,13 @@ export function MarketPage() {
             <Leaf size={15} /> سوق فُرصة
           </span>
         }
-        title={activeType === 'request' ? 'طلبات الشراء' : activeType === 'offer' ? 'عروض البيع' : 'السوق الزراعي'}
+        title={activeType === 'request' ? 'طلبات الشراء' : activeType === 'offer' ? 'عروض البيع' : activeType === 'service' ? 'الخدمات' : 'السوق الزراعي'}
         description={
           activeType === 'request'
             ? 'طلبات شراء نشرها التجار والمصانع — ابحث عن الطلب المناسب وقدّم عرضك.'
-            : 'تصفح عروض البيع وطلبات الشراء من مختلف محافظات الأردن، وفلتر النتائج حسب احتياجك.'
+            : activeType === 'service'
+              ? 'خدمات زراعية ونقل وتعبئة معروضة من مقدمي الخدمات في الأردن.'
+              : 'تصفح عروض البيع وطلبات الشراء من مختلف محافظات الأردن، وفلتر النتائج حسب احتياجك.'
         }
         actions={
           user ? (
@@ -194,6 +197,7 @@ export function MarketPage() {
             <option value="">الكل</option>
             <option value="offer">عروض بيع</option>
             <option value="request">طلبات شراء</option>
+            <option value="service">خدمات</option>
           </select>
         </div>
 
@@ -290,7 +294,7 @@ export function MarketPage() {
           {loading || !data ? 'جارٍ تحميل النتائج…' : `${data.total} نتيجة — الصفحة ${data.page} من ${data.totalPages}`}
         </p>
         {activeType ? (
-          <span className="badge badge-outline">{activeType === 'offer' ? 'عروض بيع' : 'طلبات شراء'}</span>
+          <span className="badge badge-outline">{listingTypeLabel[activeType as ListingType] ?? activeType}</span>
         ) : null}
       </div>
 

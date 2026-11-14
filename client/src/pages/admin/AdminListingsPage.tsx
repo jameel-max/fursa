@@ -39,6 +39,7 @@ const typeOptions: Array<{ value: '' | ListingType; label: string }> = [
   { value: '', label: 'كل الأنواع' },
   { value: 'offer', label: 'عروض بيع' },
   { value: 'request', label: 'طلبات شراء' },
+  { value: 'service', label: 'خدمات' },
 ];
 
 export function AdminListingsPage() {
@@ -291,7 +292,7 @@ export function AdminListingsPage() {
                     </td>
                     <td>{item.ownerName}</td>
                     <td>
-                      <Badge tone={item.listingType === 'offer' ? 'offer' : 'request'}>
+                      <Badge tone={item.listingType}>
                         {listingTypeLabel[item.listingType]}
                       </Badge>
                     </td>

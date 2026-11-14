@@ -73,7 +73,7 @@ export function Badge({
   tone = 'default',
 }: {
   children: ReactNode;
-  tone?: 'default' | 'offer' | 'request' | 'gold' | 'muted' | 'danger' | 'warning' | 'outline';
+  tone?: 'default' | 'offer' | 'request' | 'service' | 'gold' | 'muted' | 'danger' | 'warning' | 'outline';
 }) {
   const toneClass = tone === 'default' ? '' : `badge-${tone}`;
   return <span className={`badge ${toneClass}`}>{children}</span>;

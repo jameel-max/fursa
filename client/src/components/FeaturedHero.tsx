@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, MapPin, Star } from 'lucide-react';
 import type { Listing } from '../types';
 import { ListingImage } from './ListingImage';
-import { formatNumber, formatPrice } from '../lib/format';
+import { formatNumber, formatPrice, listingTypeLabel } from '../lib/format';
 import { useCatalog } from '../lib/catalog';
 
 const ROTATE_MS = 6000;
@@ -44,7 +44,7 @@ export function FeaturedHero({ listings }: { listings: Listing[] }) {
       </Link>
       <div className="featured-hero-body">
         <div className="between">
-          <span className="badge badge-offer">{listing.listingType === 'offer' ? 'عرض بيع' : 'طلب شراء'}</span>
+          <span className="badge badge-offer">{listingTypeLabel[listing.listingType]}</span>
           <div className="featured-hero-nav">
             <button type="button" onClick={() => go(-1)} aria-label="السابق">
               <ChevronRight size={16} />

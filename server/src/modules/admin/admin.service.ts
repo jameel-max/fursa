@@ -21,10 +21,11 @@ export async function getAdminStats() {
             SUM(CASE WHEN account_status IN ('suspended', 'banned') THEN 1 ELSE 0 END) AS suspended
      FROM users`,
   );
-  const listings = await query<{ total: number; offers: number; requests: number; active: number; paused: number; closed: number; expired: number }>(
+  const listings = await query<{ total: number; offers: number; requests: number; services: number; active: number; paused: number; closed: number; expired: number }>(
     `SELECT COUNT(*) AS total,
             SUM(CASE WHEN listing_type = 'offer' THEN 1 ELSE 0 END) AS offers,
             SUM(CASE WHEN listing_type = 'request' THEN 1 ELSE 0 END) AS requests,
+            SUM(CASE WHEN listing_type = 'service' THEN 1 ELSE 0 END) AS services,
             SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active,
             SUM(CASE WHEN status = 'paused' THEN 1 ELSE 0 END) AS paused,
             SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) AS closed,

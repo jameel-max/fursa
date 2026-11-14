@@ -238,7 +238,7 @@ export function ListingDetailPage() {
           <Card pad>
             <div className="between">
               <div className="row wrap">
-                <Badge tone={listing.listingType === 'offer' ? 'offer' : 'request'}>{listingTypeLabel[listing.listingType]}</Badge>
+                <Badge tone={listing.listingType}>{listingTypeLabel[listing.listingType]}</Badge>
                 <Badge tone={listing.status === 'active' ? 'default' : 'muted'}>{listingStatusLabel[listing.status]}</Badge>
                 {categoryName ? <Badge tone="muted">{categoryName}</Badge> : null}
               </div>

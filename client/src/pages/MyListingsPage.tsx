@@ -163,7 +163,7 @@ export function MyListingsPage() {
                   </Link>
                   <div className="grow stack-sm" style={{ padding: '1rem' }}>
                     <div className="row wrap" style={{ gap: '0.4rem' }}>
-                      <Badge tone={listing.listingType === 'offer' ? 'offer' : 'request'}>
+                      <Badge tone={listing.listingType}>
                         {listingTypeLabel[listing.listingType]}
                       </Badge>
                       <Badge

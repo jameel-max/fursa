@@ -28,7 +28,7 @@ export function ListingCard({
           <ListingImage src={image} alt={listing.title} />
         </Link>
         <span className="badge-type">
-          <Badge tone={listing.listingType === 'offer' ? 'offer' : 'request'}>{listingTypeLabel[listing.listingType]}</Badge>
+          <Badge tone={listing.listingType}>{listingTypeLabel[listing.listingType]}</Badge>
         </span>
         {onToggleFavorite ? (
           <button
