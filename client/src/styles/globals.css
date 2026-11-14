@@ -850,6 +850,14 @@ button {
   background: linear-gradient(90deg, rgba(23, 48, 31, 0.92) 0%, rgba(23, 48, 31, 0.55) 60%, rgba(23, 48, 31, 0.25) 100%);
 }
 
+.hero-plain {
+  background: #fff;
+}
+
+.hero-plain::after {
+  display: none;
+}
+
 .hero-inner {
   position: relative;
   z-index: 1;
@@ -1086,7 +1094,15 @@ button {
 }
 
 @media (max-width: 900px) {
-  .hero-inner { grid-template-columns: 1fr; }
+  .hero-plain {
+  background: #fff;
+}
+
+.hero-plain::after {
+  display: none;
+}
+
+.hero-inner { grid-template-columns: 1fr; }
   .hero-copy h1 { max-width: none; }
 }
 

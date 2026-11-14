@@ -127,7 +127,7 @@ export function HomePage() {
 
   return (
     <div>
-      <section className="hero">
+      <section className={ads.length > 0 ? 'hero hero-plain' : 'hero'}>
         {ads.length > 0 ? (
           <BannerCarousel ads={ads} />
         ) : (
