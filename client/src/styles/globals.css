@@ -2207,3 +2207,67 @@ button {
   border-radius: var(--radius-sm, 10px);
   background: var(--bg-soft, #faf8f2);
 }
+
+.market-search-cell {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.market-search-cell > div:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.market-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.market-filter-toggle.active {
+  border-color: var(--green-700, #2f5d3a);
+  color: var(--green-800, #1f3d27);
+}
+
+.filter-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--green-700, #2f5d3a);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.filters-extra {
+  display: contents;
+}
+
+.filters-extra.closed {
+  display: none;
+}
+
+@media (min-width: 861px) {
+  .market-filter-toggle {
+    display: none;
+  }
+  .filters-extra.closed {
+    display: contents;
+  }
+}
+
+@media (max-width: 640px) {
+  .market-search-cell {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .market-filter-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+}

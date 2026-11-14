@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Leaf, RotateCcw, Search, SlidersHorizontal } from 'lucide-react';
+import { Funnel, Leaf, RotateCcw, Search, SlidersHorizontal } from 'lucide-react';
 import { api, toQuery } from '../lib/api';
 import { useCatalog, flattenCategories } from '../lib/catalog';
 import type { Listing, ListingList } from '../types';
@@ -38,6 +38,7 @@ export function MarketPage() {
   const [data, setData] = useState<ListingList | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const page = Number(searchParams.get('page') ?? '1') || 1;
 
@@ -118,6 +119,14 @@ export function MarketPage() {
   const flatCategories = flattenCategories(categories);
   const activeType = searchParams.get('type');
   const hasFilters = Array.from(searchParams.keys()).some((key) => key !== 'page');
+  const activeFilterCount = [
+    searchParams.get('type'),
+    searchParams.get('categoryId'),
+    searchParams.get('governorateId'),
+    searchParams.get('minPrice'),
+    searchParams.get('maxPrice'),
+    searchParams.get('sort') && searchParams.get('sort') !== 'rating' ? searchParams.get('sort') : '',
+  ].filter(Boolean).length;
 
   return (
     <div className="page container">
@@ -147,19 +156,32 @@ export function MarketPage() {
       />
 
       <form className="filters mb-4" onSubmit={applyFilters} aria-label="تصفية الإعلانات">
-        <div className="field span-2">
-          <label htmlFor="market-search">البحث</label>
-          <div style={{ position: 'relative' }}>
+        <div className="field market-search-cell">
+          <div style={{ position: 'relative', flex: 1 }}>
             <input
               id="market-search"
               className="input"
               value={draft.search}
               onChange={(event) => setDraft({ ...draft, search: event.target.value })}
-              placeholder="اسم المنتج أو الخدمة أو اسم الناشر"
+              placeholder="ابحث في السوق…"
+              aria-label="البحث في السوق"
             />
             <Search size={16} className="muted" style={{ position: 'absolute', insetInlineStart: '0.7rem', top: '50%', transform: 'translateY(-50%)' }} />
           </div>
+          <button
+            type="button"
+            className={filtersOpen ? 'btn btn-secondary market-filter-toggle active' : 'btn btn-secondary market-filter-toggle'}
+            onClick={() => setFiltersOpen((open) => !open)}
+            aria-expanded={filtersOpen}
+            aria-label="فتح الفلاتر"
+          >
+            <Funnel size={16} />
+            <span className="hide-sm-inline">فلترة</span>
+            {activeFilterCount > 0 ? <span className="filter-count">{activeFilterCount}</span> : null}
+          </button>
         </div>
+
+        <div className={filtersOpen ? 'filters-extra' : 'filters-extra closed'}>
 
         <div className="field">
           <label htmlFor="market-type">نوع الإعلان</label>
@@ -259,6 +281,7 @@ export function MarketPage() {
           <Button type="button" variant="secondary" onClick={resetFilters} icon={<RotateCcw size={16} />}>
             إعادة تعيين
           </Button>
+        </div>
         </div>
       </form>
 
