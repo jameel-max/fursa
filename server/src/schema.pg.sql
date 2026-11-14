@@ -244,6 +244,18 @@ CREATE TABLE IF NOT EXISTS reviews (
   UNIQUE(listing_id, reviewer_id)
 );
 
+
+CREATE TABLE IF NOT EXISTS ads (
+  id SERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  image_url TEXT NOT NULL,
+  link_url TEXT,
+  is_active INTEGER NOT NULL DEFAULT 1,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS platform_settings (
   id SERIAL PRIMARY KEY,
   key TEXT NOT NULL UNIQUE,

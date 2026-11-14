@@ -21,6 +21,7 @@ import { MessagesPage } from './pages/MessagesPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { SubscriptionPage } from './pages/SubscriptionPage';
+import { AdminAdsPage } from './pages/admin/AdminAdsPage';
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { AdminUsersPage } from './pages/admin/AdminUsersPage';
 import { AdminListingsPage } from './pages/admin/AdminListingsPage';
@@ -75,6 +76,7 @@ export default function App() {
           <Route index element={<AdminDashboardPage />} />
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="listings" element={<AdminListingsPage />} />
+          <Route path="ads" element={<AdminAdsPage />} />
           <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
         </Route>

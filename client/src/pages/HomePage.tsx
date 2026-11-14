@@ -18,9 +18,10 @@ import {
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useCatalog, flattenCategories } from '../lib/catalog';
-import type { Listing, ListingList, Plan } from '../types';
+import type { AdBanner, Listing, ListingList, Plan } from '../types';
 import { ListingCard } from '../components/ListingCard';
 import { FeaturedHero } from '../components/FeaturedHero';
+import { BannerCarousel } from '../components/BannerCarousel';
 import { buttonClass } from '../components/ui/Button';
 import { Alert, CardsSkeleton, EmptyState } from '../components/ui/Feedback';
 import { SectionHead } from '../components/ui/Surfaces';
@@ -39,6 +40,7 @@ export function HomePage() {
   const [categoryId, setCategoryId] = useState('');
   const [listings, setListings] = useState<Listing[]>([]);
   const [featuredListings, setFeaturedListings] = useState<Listing[]>([]);
+  const [ads, setAds] = useState<AdBanner[]>([]);
   const [requests, setRequests] = useState<Listing[]>([]);
   const [total, setTotal] = useState(0);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -51,11 +53,12 @@ export function HomePage() {
       setLoading(true);
       setError(null);
       try {
-        const [latest, requestList, plansData, featured] = await Promise.all([
+        const [latest, requestList, plansData, featured, adsData] = await Promise.all([
           api<ListingList>('/listings?limit=6&sort=newest'),
           api<ListingList>('/listings?listingType=request&limit=3&sort=newest'),
           api<{ items: Plan[] }>('/subscriptions/plans'),
           api<ListingList>('/listings?featured=1&limit=6&sort=newest'),
+          api<{ items: AdBanner[] }>('/ads'),
         ]);
         if (!active) return;
         setListings(latest.items);
@@ -63,6 +66,7 @@ export function HomePage() {
         setRequests(requestList.items);
         setPlans(plansData.items);
         setFeaturedListings(featured.items);
+        setAds(adsData.items);
       } catch (err) {
         if (active) setError(err instanceof Error ? err.message : 'تعذّر تحميل بيانات السوق.');
       } finally {
@@ -85,9 +89,48 @@ export function HomePage() {
   const rootCategories = categories.filter((category) => category.parentId === null).slice(0, 6);
   const categoryCount = flattenCategories(categories).length;
 
+  const searchBlock = (
+    <>
+      <form className="hero-search" role="search" onSubmit={onSearch}>
+        <label className="sr-only" htmlFor="home-search">
+          ابحث عن منتج أو خدمة
+        </label>
+        <input
+          id="home-search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="طماطم، زيت زيتون، نقل مبرد…"
+        />
+        <select value={categoryId} onChange={(event) => setCategoryId(event.target.value)} aria-label="الفئة">
+          <option value="">كل الفئات</option>
+          {rootCategories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
+        <button type="submit" className="btn">
+          <Search size={17} /> بحث
+        </button>
+      </form>
+      <div className="hero-chips">
+        <Link to="/market?type=offer">عروض البيع</Link>
+        <Link to="/market?type=request">طلبات الشراء</Link>
+        {rootCategories.slice(0, 2).map((category) => (
+          <Link key={category.id} to={`/market?categoryId=${category.id}`}>
+            {category.name}
+          </Link>
+        ))}
+      </div>
+    </>
+  );
+
   return (
     <div>
       <section className="hero">
+        {ads.length > 0 ? (
+          <BannerCarousel ads={ads} />
+        ) : (
         <div className="container hero-inner">
           <div className="hero-copy">
             <span className="eyebrow" style={{ background: 'rgba(255,255,255,0.14)', color: '#fff', borderColor: 'rgba(255,255,255,0.22)' }}>
@@ -98,37 +141,7 @@ export function HomePage() {
               اعرض محاصيلك، أو ابحث عن طلبات شراء وخدمات نقل ومستلزمات زراعية. منصة واحدة تجمع المزارعين والتجار
               ومقدمي الخدمات في الأردن.
             </p>
-            <form className="hero-search" role="search" onSubmit={onSearch}>
-              <label className="sr-only" htmlFor="home-search">
-                ابحث عن منتج أو خدمة
-              </label>
-              <input
-                id="home-search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="طماطم، زيت زيتون، نقل مبرد…"
-              />
-              <select value={categoryId} onChange={(event) => setCategoryId(event.target.value)} aria-label="الفئة">
-                <option value="">كل الفئات</option>
-                {rootCategories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-              <button type="submit" className="btn">
-                <Search size={17} /> بحث
-              </button>
-            </form>
-            <div className="hero-chips">
-              <Link to="/market?type=offer">عروض البيع</Link>
-              <Link to="/market?type=request">طلبات الشراء</Link>
-              {rootCategories.slice(0, 2).map((category) => (
-                <Link key={category.id} to={`/market?categoryId=${category.id}`}>
-                  {category.name}
-                </Link>
-              ))}
-            </div>
+{searchBlock}
           </div>
 
           <div className="hero-card">
@@ -175,7 +188,14 @@ export function HomePage() {
             </Link>
           </div>
         </div>
+        )}
       </section>
+
+      {ads.length > 0 ? (
+        <section className="search-strip" aria-label="البحث في السوق">
+          <div className="container">{searchBlock}</div>
+        </section>
+      ) : null}
 
       <div className="container">
         <section className="section" aria-labelledby="categories-title">

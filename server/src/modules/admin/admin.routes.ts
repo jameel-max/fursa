@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { errorHandler } from '../../lib/errors';
+import { adImageUpload, listAdminAdsHandler, createAdHandler, updateAdHandler, deleteAdHandler } from '../ads/ads.controller';
 import { adminLimiter } from '../../lib/rateLimit';
 import { authenticate, requireAdmin } from '../../lib/auth';
 import {
@@ -33,6 +34,10 @@ adminRouter.patch('/listings/:id/status', adminLimiter, setListingStatusHandler)
 adminRouter.patch('/listings/:id/feature', adminLimiter, setListingFeaturedHandler);
 adminRouter.get('/subscriptions', adminLimiter, listAdminSubscriptionsHandler);
 adminRouter.post('/subscriptions/:id/cancel', adminLimiter, cancelAdminSubscriptionHandler);
+adminRouter.get('/ads', listAdminAdsHandler);
+adminRouter.post('/ads', adImageUpload, createAdHandler);
+adminRouter.patch('/ads/:id', adImageUpload, updateAdHandler);
+adminRouter.delete('/ads/:id', deleteAdHandler);
 adminRouter.get('/settings', getAdminSettingsHandler);
 adminRouter.patch('/settings', adminLimiter, updateAdminSettingsHandler);
 

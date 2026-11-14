@@ -5,6 +5,7 @@ import {
   CreditCard,
   LayoutDashboard,
   Leaf,
+  Megaphone,
   Settings,
   ShieldCheck,
   Users,
@@ -16,6 +17,7 @@ const links = [
   { to: '/admin', label: 'نظرة عامة', icon: BarChart3, end: true },
   { to: '/admin/users', label: 'المستخدمون', icon: Users },
   { to: '/admin/listings', label: 'الإعلانات', icon: Leaf },
+  { to: '/admin/ads', label: 'إعلانات المنصة', icon: Megaphone },
   { to: '/admin/subscriptions', label: 'الاشتراكات', icon: CreditCard },
   { to: '/admin/settings', label: 'إعدادات المنصة', icon: Settings },
 ];

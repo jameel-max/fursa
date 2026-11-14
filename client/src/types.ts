@@ -329,3 +329,13 @@ export interface ApiErrorPayload {
   message: string;
   details?: Array<{ field: string; message: string }>;
 }
+
+export interface AdBanner {
+  id: number;
+  title: string;
+  imageUrl: string;
+  linkUrl: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: number;
+}
