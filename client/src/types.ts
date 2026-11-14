@@ -74,6 +74,7 @@ export interface Listing {
   governorateId: number | null;
   area: string | null;
   status: ListingStatus;
+  featured?: number;
   expiresAt: number | null;
   createdAt: number;
   updatedAt: number;
@@ -264,6 +265,7 @@ export interface AdminListing {
   title: string;
   listingType: ListingType;
   status: ListingStatus;
+  featured?: boolean;
   price: number | null;
   ownerName: string;
   createdAt: number;

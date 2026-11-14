@@ -12,6 +12,12 @@ export async function seed() {
     // column already exists
   }
 
+  try {
+    await execute('ALTER TABLE listings ADD COLUMN featured INTEGER NOT NULL DEFAULT 0');
+  } catch {
+    // column already exists
+  }
+
   const insertSpecialty = async (name: string) => {
     const result = await execute('INSERT INTO specialties (name, is_active) VALUES (?, 1) ON CONFLICT DO NOTHING', [name]);
     return result.lastInsertRowid;

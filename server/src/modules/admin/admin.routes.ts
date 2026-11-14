@@ -11,6 +11,7 @@ import {
   cancelAdminSubscriptionHandler,
   setUserStatusHandler,
   setListingStatusHandler,
+  setListingFeaturedHandler,
   listAdminListingsHandler,
   listAdminSubscriptionsHandler,
   getAdminSettingsHandler,
@@ -29,6 +30,7 @@ adminRouter.patch('/users/:id/status', adminLimiter, setUserStatusHandler);
 adminRouter.get('/listings', adminLimiter, listAdminListingsHandler);
 adminRouter.delete('/listings/:id', adminLimiter, deleteAdminListingHandler);
 adminRouter.patch('/listings/:id/status', adminLimiter, setListingStatusHandler);
+adminRouter.patch('/listings/:id/feature', adminLimiter, setListingFeaturedHandler);
 adminRouter.get('/subscriptions', adminLimiter, listAdminSubscriptionsHandler);
 adminRouter.post('/subscriptions/:id/cancel', adminLimiter, cancelAdminSubscriptionHandler);
 adminRouter.get('/settings', getAdminSettingsHandler);

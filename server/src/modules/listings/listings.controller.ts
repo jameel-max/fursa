@@ -16,6 +16,7 @@ export const listListingsHandler = asyncHandler(async (req: Request, res: Respon
     minQuantity: req.query.minQuantity ? Number(req.query.minQuantity) : undefined,
     status: req.query.status ? String(req.query.status) : 'active',
     sort: req.query.sort ? (String(req.query.sort) as 'newest' | 'price_low' | 'price_high' | 'quantity' | 'rating') : undefined,
+    featured: req.query.featured === '1' ? true : undefined,
     search: req.query.search ? String(req.query.search) : undefined,
     page: req.query.page ? Number(req.query.page) : 1,
     limit: req.query.limit ? Number(req.query.limit) : 12,

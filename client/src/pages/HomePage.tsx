@@ -20,6 +20,7 @@ import { api } from '../lib/api';
 import { useCatalog, flattenCategories } from '../lib/catalog';
 import type { Listing, ListingList, Plan } from '../types';
 import { ListingCard } from '../components/ListingCard';
+import { FeaturedHero } from '../components/FeaturedHero';
 import { buttonClass } from '../components/ui/Button';
 import { Alert, CardsSkeleton, EmptyState } from '../components/ui/Feedback';
 import { SectionHead } from '../components/ui/Surfaces';
@@ -37,6 +38,7 @@ export function HomePage() {
   const [search, setSearch] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [listings, setListings] = useState<Listing[]>([]);
+  const [featuredListings, setFeaturedListings] = useState<Listing[]>([]);
   const [requests, setRequests] = useState<Listing[]>([]);
   const [total, setTotal] = useState(0);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -49,16 +51,18 @@ export function HomePage() {
       setLoading(true);
       setError(null);
       try {
-        const [latest, requestList, plansData] = await Promise.all([
+        const [latest, requestList, plansData, featured] = await Promise.all([
           api<ListingList>('/listings?limit=6&sort=newest'),
           api<ListingList>('/listings?listingType=request&limit=3&sort=newest'),
           api<{ items: Plan[] }>('/subscriptions/plans'),
+          api<ListingList>('/listings?featured=1&limit=6&sort=newest'),
         ]);
         if (!active) return;
         setListings(latest.items);
         setTotal(latest.total);
         setRequests(requestList.items);
         setPlans(plansData.items);
+        setFeaturedListings(featured.items);
       } catch (err) {
         if (active) setError(err instanceof Error ? err.message : 'تعذّر تحميل بيانات السوق.');
       } finally {
@@ -128,15 +132,19 @@ export function HomePage() {
           </div>
 
           <div className="hero-card">
-            <div className="row" style={{ gap: '0.6rem' }}>
-              <span className="tile-icon" aria-hidden="true">
-                <BadgeCheck size={22} />
-              </span>
-              <div>
-                <h3>سوق حقيقي، بيانات حقيقية</h3>
-                <p className="muted small">كل إعلان مرتبط بحساب موثّق وبيانات واضحة.</p>
+            {featuredListings.length > 0 ? (
+              <FeaturedHero listings={featuredListings} />
+            ) : (
+              <div className="row" style={{ gap: '0.6rem' }}>
+                <span className="tile-icon" aria-hidden="true">
+                  <BadgeCheck size={22} />
+                </span>
+                <div>
+                  <h3>سوق حقيقي، بيانات حقيقية</h3>
+                  <p className="muted small">كل إعلان مرتبط بحساب موثّق وبيانات واضحة.</p>
+                </div>
               </div>
-            </div>
+            )}
             <div className="hero-stats">
               <div className="hero-stat">
                 <strong>{loading ? '…' : formatNumber(total)}</strong>

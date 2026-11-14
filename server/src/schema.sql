@@ -88,6 +88,7 @@ CREATE TABLE IF NOT EXISTS listings (
   governorate_id INTEGER REFERENCES governorates(id) ON DELETE SET NULL,
   area TEXT,
   status TEXT NOT NULL DEFAULT 'active',
+  featured INTEGER NOT NULL DEFAULT 0,
   expires_at INTEGER,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL

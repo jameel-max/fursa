@@ -16,6 +16,7 @@ export interface ListingFilters {
   minQuantity?: number;
   status?: string;
   sort?: 'newest' | 'price_low' | 'price_high' | 'quantity' | 'rating';
+  featured?: boolean;
   search?: string;
   page?: number;
   limit?: number;
@@ -56,6 +57,7 @@ export interface ListingDetail {
   governorateId: number | null;
   area: string | null;
   status: string;
+  featured?: number;
   expiresAt: number | null;
   createdAt: number;
   updatedAt: number;
@@ -124,6 +126,9 @@ export async function listListings(filters: ListingFilters) {
     conditions.push('l.listing_type = ?');
     params.push(filters.listingType);
   }
+  if (filters.featured) {
+    conditions.push('l.featured = 1');
+  }
   if (filters.categoryId) {
     conditions.push('l.category_id = ?');
     params.push(filters.categoryId);
@@ -188,11 +193,12 @@ export async function listListings(filters: ListingFilters) {
     governorate_id: number;
     area: string;
     status: string;
+    featured: number;
     expires_at: number;
     created_at: number;
     updated_at: number;
   }>(
-    `SELECT l.id, l.user_id, l.listing_type, l.title, l.category_id, l.description, l.quantity, l.unit_id, l.price, l.price_type, l.governorate_id, l.area, l.status, l.expires_at, l.created_at, l.updated_at
+    `SELECT l.id, l.user_id, l.listing_type, l.title, l.category_id, l.description, l.quantity, l.unit_id, l.price, l.price_type, l.governorate_id, l.area, l.status, l.featured, l.expires_at, l.created_at, l.updated_at
      FROM listings l
      JOIN users u ON u.id = l.user_id
      LEFT JOIN (
@@ -225,6 +231,7 @@ export async function listListings(filters: ListingFilters) {
       governorateId: row.governorate_id,
       area: row.area,
       status: row.status,
+      featured: row.featured ?? 0,
       expiresAt: row.expires_at ? toUnixSeconds(row.expires_at) : null,
       createdAt: toUnixSeconds(row.created_at),
       updatedAt: toUnixSeconds(row.updated_at),
@@ -253,6 +260,7 @@ export async function getListingById(id: number, viewerId: number | undefined) {
     governorate_id: number;
     area: string;
     status: string;
+    featured: number;
     expires_at: number;
     created_at: number;
     updated_at: number;
@@ -278,6 +286,7 @@ export async function getListingById(id: number, viewerId: number | undefined) {
     governorateId: listing.governorate_id,
     area: listing.area,
     status: listing.status,
+    featured: listing.featured ?? 0,
     expiresAt: listing.expires_at ? toUnixSeconds(listing.expires_at) : null,
     createdAt: toUnixSeconds(listing.created_at),
     updatedAt: toUnixSeconds(listing.updated_at),
@@ -310,6 +319,7 @@ export async function listMyListings(userId: number, status: string) {
     governorate_id: number;
     area: string;
     status: string;
+    featured: number;
     expires_at: number;
     created_at: number;
     updated_at: number;
@@ -333,6 +343,7 @@ export async function listMyListings(userId: number, status: string) {
       governorateId: row.governorate_id,
       area: row.area,
       status: row.status,
+      featured: row.featured ?? 0,
       expiresAt: row.expires_at ? toUnixSeconds(row.expires_at) : null,
       createdAt: toUnixSeconds(row.created_at),
       updatedAt: toUnixSeconds(row.updated_at),

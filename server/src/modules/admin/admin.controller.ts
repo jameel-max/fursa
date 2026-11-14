@@ -33,6 +33,12 @@ export const setListingStatusHandler = asyncHandler(async (req: Request, res: Re
   return sendSuccess(res, data);
 });
 
+export const setListingFeaturedHandler = asyncHandler(async (req: Request, res: Response) => {
+  const featured = req.body?.featured === true || req.body?.featured === 1 || req.body?.featured === '1';
+  const data = await adminService.setListingFeatured(req.user!.id, Number(req.params.id), featured);
+  return sendSuccess(res, data);
+});
+
 export const getAdminUserDetailHandler = asyncHandler(async (req: Request, res: Response) => {
   const data = await adminService.getAdminUserDetail(Number(req.params.id));
   return sendSuccess(res, data);

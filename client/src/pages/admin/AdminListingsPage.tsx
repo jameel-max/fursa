@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ExternalLink, PauseCircle, PlayCircle, RefreshCw, Trash2, XCircle } from 'lucide-react';
+import { ExternalLink, PauseCircle, PlayCircle, RefreshCw, Star, Trash2, XCircle } from 'lucide-react';
 import { api, toQuery } from '../../lib/api';
 import { useToast } from '../../context/ToastContext';
 import type { AdminListing, ListingStatus, ListingType } from '../../types';
@@ -121,6 +121,21 @@ export function AdminListingsPage() {
       showToast(err instanceof Error ? err.message : 'تعذّر تحديث حالة الإعلان.', 'error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const toggleFeatured = async (item: AdminListing) => {
+    const next = !item.featured;
+    try {
+      await api(`/admin/listings/${item.id}/feature`, { method: 'PATCH', body: { featured: next } });
+      setData((current) =>
+        current
+          ? { ...current, items: current.items.map((row) => (row.id === item.id ? { ...row, featured: next } : row)) }
+          : current,
+      );
+      showToast(next ? 'تم تمييز الإعلان ليظهر في الصفحة الرئيسية.' : 'تم إلغاء تمييز الإعلان.');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'تعذّر تحديث التمييز.', 'error');
     }
   };
 
@@ -306,6 +321,14 @@ export function AdminListingsPage() {
                         >
                           <ExternalLink size={14} />
                         </Link>
+                        <Button
+                          size="sm"
+                          variant={item.featured ? 'secondary' : 'ghost'}
+                          icon={<Star size={14} fill={item.featured ? 'currentColor' : 'none'} />}
+                          onClick={() => void toggleFeatured(item)}
+                        >
+                          {item.featured ? 'إلغاء التمييز' : 'تمييز'}
+                        </Button>
                         {item.status !== 'active' ? (
                           <Button
                             size="sm"

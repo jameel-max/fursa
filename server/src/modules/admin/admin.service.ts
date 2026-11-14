@@ -174,6 +174,16 @@ export async function setListingStatus(adminUserId: number, listingId: number, s
   return { success: true, status };
 }
 
+export async function setListingFeatured(adminUserId: number, listingId: number, featured: boolean) {
+  const db = getDb();
+  const listing = await queryOne<{ id: number }>('SELECT id FROM listings WHERE id = ?', [listingId]);
+  if (!listing) throw Object.assign(new Error('LISTING_NOT_FOUND'), { statusCode: 404, code: 'LISTING_NOT_FOUND' });
+  await execute('UPDATE listings SET featured = ?, updated_at = ? WHERE id = ?', [featured ? 1 : 0, Math.floor(Date.now() / 1000), listingId]);
+  await execute('INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+    [adminUserId, featured ? 'LISTING_FEATURED' : 'LISTING_UNFEATURED', 'listing', listingId, JSON.stringify({ featured }), Math.floor(Date.now() / 1000)]);
+  return { success: true, featured };
+}
+
 export async function listAdminSubscriptions() {
   const rows = await query<{
     id: number;
@@ -235,12 +245,13 @@ export async function listAdminListings(filters: { status?: string; type?: strin
     listing_type: string;
     title: string;
     status: string;
+    featured: number;
     quantity: number;
     price: number;
     created_at: number;
     updated_at: number;
     owner_name: string;
-  }>(`SELECT l.id, l.user_id, l.listing_type, l.title, l.status, l.quantity, l.price, l.created_at, l.updated_at, u.full_name AS owner_name FROM listings l JOIN users u ON u.id = l.user_id WHERE ${whereClause} ORDER BY l.updated_at DESC LIMIT ? OFFSET ?`, [...params, limit, offset]);
+  }>(`SELECT l.id, l.user_id, l.listing_type, l.title, l.status, l.featured, l.quantity, l.price, l.created_at, l.updated_at, u.full_name AS owner_name FROM listings l JOIN users u ON u.id = l.user_id WHERE ${whereClause} ORDER BY l.updated_at DESC LIMIT ? OFFSET ?`, [...params, limit, offset]);
   const total = Number(((await query<{ total: number }>(`SELECT COUNT(*) AS total FROM listings l WHERE ${whereClause}`, params)))[0]?.total ?? 0);
   const items = rows.map((row) => ({
     id: row.id,
@@ -248,6 +259,7 @@ export async function listAdminListings(filters: { status?: string; type?: strin
     listingType: row.listing_type,
     title: row.title,
     status: row.status,
+    featured: row.featured === 1,
     quantity: row.quantity,
     price: row.price,
     ownerName: row.owner_name,
