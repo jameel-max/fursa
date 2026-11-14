@@ -85,8 +85,8 @@ export async function notificationsSummary(userId: number) {
   };
 }
 
-export function getPushPublicKey() {
-  return { publicKey: getVapidPublicKey() };
+export async function getPushPublicKey() {
+  return { publicKey: await getVapidPublicKey() };
 }
 
 export async function subscribePush(userId: number, input: unknown) {
@@ -116,7 +116,7 @@ export async function unsubscribePush(userId: number, input: unknown) {
 
 export async function createNotification(userId: number, type: string, title: string, body: string, targetUrl?: string) {
   const db = getDb();
-  db.prepare(
+  await db.prepare(
     'INSERT INTO notifications (user_id, type, title, body, target_url, is_read, created_at) VALUES (?, ?, ?, ?, ?, 0, ?)',
   ).run(userId, type, title, body, targetUrl ?? null, Math.floor(Date.now() / 1000));
   return { success: true };

@@ -43,10 +43,10 @@ export async function listConversations(userId: number): Promise<ConversationSum
     const otherUserId = row.participant_one_id === userId ? row.participant_two_id : row.participant_one_id;
     const otherUser = await queryOne<{ full_name: string }>('SELECT full_name FROM users WHERE id = ?', [otherUserId]);
     const unread = Number(
-      await query<{ total: number }>(
+      (await query<{ total: number }>(
         `SELECT COUNT(*) AS total FROM messages WHERE conversation_id = ? AND sender_id != ? AND is_read = 0`,
         [row.id, userId],
-      )[0]?.total ?? 0,
+      ))[0]?.total ?? 0,
     );
     summaries.push({
       id: row.id,

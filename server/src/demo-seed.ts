@@ -202,7 +202,7 @@ async function ensureUser(user: DemoUser, passwordHash: string): Promise<number>
     'INSERT INTO users (full_name, phone, password_hash, phone_verified_at, account_status, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     [user.fullName, user.phone, passwordHash, now, 'active', user.role, now, now],
   );
-  const id = Number(await queryOne<{ id: number }>('SELECT id FROM users WHERE phone = ?', [user.phone])?.id);
+  const id = Number((await queryOne<{ id: number }>('SELECT id FROM users WHERE phone = ?', [user.phone]))?.id);
   const governorate = await queryOne<{ id: number }>('SELECT id FROM governorates WHERE name_ar = ?', [user.governorate]);
   await execute(
     'INSERT INTO user_profiles (user_id, business_name, description, governorate_id, area, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -247,7 +247,7 @@ async function ensureListing(listing: DemoListing, userId: number): Promise<numb
       now,
     ],
   );
-  const id = Number(await queryOne<{ id: number }>('SELECT id FROM listings WHERE user_id = ? AND title = ?', [userId, listing.title])?.id);
+  const id = Number((await queryOne<{ id: number }>('SELECT id FROM listings WHERE user_id = ? AND title = ?', [userId, listing.title]))?.id);
   for (const [index, url] of listing.images.entries()) {
     await execute('INSERT INTO listing_images (listing_id, image_url, sort_order) VALUES (?, ?, ?)', [id, url, index]);
   }

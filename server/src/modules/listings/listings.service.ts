@@ -210,7 +210,7 @@ export async function listListings(filters: ListingFilters) {
   for (const row of rows) {
     const images = await query<ListingImage>('SELECT id, image_url AS imageUrl, sort_order AS sortOrder FROM listing_images WHERE listing_id = ? ORDER BY sort_order ASC', [row.id]);
     const owner = await buildOwner(row.user_id);
-    const offerCount = Number(await query<{ total: number }>('SELECT COUNT(*) AS total FROM offers WHERE listing_id = ?', [row.id])[0]?.total ?? 0);
+    const offerCount = Number((await query<{ total: number }>('SELECT COUNT(*) AS total FROM offers WHERE listing_id = ?', [row.id]))[0]?.total ?? 0);
     items.push({
       id: row.id,
       userId: row.user_id,
@@ -261,7 +261,7 @@ export async function getListingById(id: number, viewerId: number | undefined) {
 
   const images = await query<ListingImage>('SELECT id, image_url AS imageUrl, sort_order AS sortOrder FROM listing_images WHERE listing_id = ? ORDER BY sort_order ASC', [id]);
   const owner = await buildOwner(listing.user_id);
-  const offerCount = Number(await query<{ total: number }>('SELECT COUNT(*) AS total FROM offers WHERE listing_id = ?', [id])[0]?.total ?? 0);
+  const offerCount = Number((await query<{ total: number }>('SELECT COUNT(*) AS total FROM offers WHERE listing_id = ?', [id]))[0]?.total ?? 0);
   const myReview = viewerId ? await getMyReviewForListing(viewerId, id) : null;
 
   const detail: ListingDetail = {
@@ -318,7 +318,7 @@ export async function listMyListings(userId: number, status: string) {
   for (const row of rows) {
     const images = await query<ListingImage>('SELECT id, image_url AS imageUrl, sort_order AS sortOrder FROM listing_images WHERE listing_id = ? ORDER BY sort_order ASC', [row.id]);
     const owner = await buildOwner(row.user_id);
-    const offerCount = Number(await query<{ total: number }>('SELECT COUNT(*) AS total FROM offers WHERE listing_id = ?', [row.id])[0]?.total ?? 0);
+    const offerCount = Number((await query<{ total: number }>('SELECT COUNT(*) AS total FROM offers WHERE listing_id = ?', [row.id]))[0]?.total ?? 0);
     items.push({
       id: row.id,
       userId: row.user_id,
@@ -414,7 +414,7 @@ export async function updateListing(userId: number, listingId: number, input: un
   }
   const data: z.infer<typeof updateListingSchema> = hasBodyFields ? validate(updateListingSchema, input) : {};
   if (imageUrls.length > 0) {
-    const existing = await query<{ total: number }>('SELECT COUNT(*) AS total FROM listing_images WHERE listing_id = ?', [listingId])[0]?.total ?? 0;
+    const existing = (await query<{ total: number }>('SELECT COUNT(*) AS total FROM listing_images WHERE listing_id = ?', [listingId]))[0]?.total ?? 0;
     if (existing + imageUrls.length > 5) {
       throw badRequest('IMAGE_LIMIT_REACHED', 'You can upload up to 5 images');
     }

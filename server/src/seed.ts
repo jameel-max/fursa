@@ -12,9 +12,9 @@ export async function seed() {
     // column already exists
   }
 
-  const insertSpecialty = (name: string) => {
-    const result = execute('INSERT INTO specialties (name, is_active) VALUES (?, 1) ON CONFLICT DO NOTHING', [name]);
-    return Number(result.lastInsertRowid);
+  const insertSpecialty = async (name: string) => {
+    const result = await execute('INSERT INTO specialties (name, is_active) VALUES (?, 1) ON CONFLICT DO NOTHING', [name]);
+    return result.lastInsertRowid;
   };
   const specialtyIds: Record<string, number> = {};
   const specialtySeeds = [
@@ -31,7 +31,7 @@ export async function seed() {
     'أخرى',
   ];
   for (const name of specialtySeeds) {
-    const id = insertSpecialty(name);
+    const id = await insertSpecialty(name);
     const existing = await queryOne<{ id: number }>('SELECT id FROM specialties WHERE name = ?', [name]);
     specialtyIds[name] = existing?.id ?? id;
   }

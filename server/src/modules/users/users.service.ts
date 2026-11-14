@@ -105,10 +105,10 @@ export async function getProfileWithUser(userId: number) {
 export async function updateMe(userId: number, input: unknown) {
   const data = validate(updateSchema, input);
   const db = getDb();
-  db.prepare(
+  await db.prepare(
     `UPDATE users SET full_name = ?, updated_at = ? WHERE id = ?`,
   ).run(data.fullName.trim(), Math.floor(Date.now() / 1000), userId);
-  db.prepare(
+  await db.prepare(
     `INSERT INTO user_profiles (user_id, business_name, description, governorate_id, area, updated_at)
      VALUES (?, ?, ?, ?, ?, ?)
      ON CONFLICT(user_id) DO UPDATE SET
@@ -143,7 +143,7 @@ export async function updateMe(userId: number, input: unknown) {
 export async function updateContactPreferences(userId: number, input: unknown) {
   const data = validate(updateContactPreferencesSchema, input);
   const db = getDb();
-  db.prepare(
+  await db.prepare(
     `INSERT INTO contact_preferences (user_id, show_phone, whatsapp_enabled, internal_messages_enabled, updated_at)
      VALUES (?, ?, ?, ?, ?)
      ON CONFLICT(user_id) DO UPDATE SET

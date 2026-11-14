@@ -19,18 +19,19 @@ export function generateOtpCode(): string {
   return code;
 }
 
-export function issueOtp(phone: string) {
+export async function issueOtp(phone: string) {
   const db = getDb();
-  execute('DELETE FROM otp_codes WHERE phone = ? AND verified_at IS NOT NULL', [phone]);
+  await execute('DELETE FROM otp_codes WHERE phone = ? AND verified_at IS NOT NULL', [phone]);
   const code = generateOtpCode();
-  db.prepare('INSERT INTO otp_codes (phone, code, expires_at, attempts, created_at) VALUES (?, ?, ?, 0, ?)')
+  await db
+    .prepare('INSERT INTO otp_codes (phone, code, expires_at, attempts, created_at) VALUES (?, ?, ?, 0, ?)')
     .run(phone, code, Math.floor(Date.now() / 1000) + OTP_TTL_SECONDS, Math.floor(Date.now() / 1000));
   return code;
 }
 
-export function verifyOtp(phone: string, code: string): { ok: boolean; error?: string } {
+export async function verifyOtp(phone: string, code: string): Promise<{ ok: boolean; error?: string }> {
   const db = getDb();
-  const otp = queryOne<{ id: number; code: string; expires_at: number; attempts: number; verified_at: number | null }>(
+  const otp = await queryOne<{ id: number; code: string; expires_at: number; attempts: number; verified_at: number | null }>(
     'SELECT id, code, expires_at, attempts, verified_at FROM otp_codes WHERE phone = ? ORDER BY id DESC LIMIT 1',
     [phone],
   );
@@ -40,40 +41,40 @@ export function verifyOtp(phone: string, code: string): { ok: boolean; error?: s
   if (otp.expires_at < now) return { ok: false, error: 'OTP_EXPIRED' };
   if (otp.attempts >= OTP_MAX_ATTEMPTS) return { ok: false, error: 'OTP_MAX_ATTEMPTS' };
   if (otp.code !== code) {
-    execute('UPDATE otp_codes SET attempts = attempts + 1 WHERE id = ?', [otp.id]);
+    await execute('UPDATE otp_codes SET attempts = attempts + 1 WHERE id = ?', [otp.id]);
     const remaining = OTP_MAX_ATTEMPTS - (otp.attempts + 1);
     return { ok: false, error: remaining > 0 ? `OTP_INVALID ${remaining}` : 'OTP_MAX_ATTEMPTS' };
   }
-  execute('UPDATE otp_codes SET verified_at = ? WHERE id = ?', [now, otp.id]);
+  await execute('UPDATE otp_codes SET verified_at = ? WHERE id = ?', [now, otp.id]);
   return { ok: true };
 }
 
-export function register(input: unknown): { user: AuthUser; devCode?: string } {
+export async function register(input: unknown): Promise<{ user: AuthUser; devCode?: string }> {
   const data = validate(registerSchema, input);
   const phone = data.phone.replace(/[^0-9]/g, '');
   const passwordHash = hashPassword(data.password);
 
-  const existing = queryOne<{ id: number }>('SELECT id FROM users WHERE phone = ?', [phone]);
+  const existing = await queryOne<{ id: number }>('SELECT id FROM users WHERE phone = ?', [phone]);
   if (existing) {
     throw badRequest('PHONE_ALREADY_REGISTERED', 'This phone number is already registered');
   }
 
   const now = Math.floor(Date.now() / 1000);
-  const userId = withTransaction((): number => {
-    execute(
+  const userId = await withTransaction(async (): Promise<number> => {
+    await execute(
       'INSERT INTO users (full_name, phone, password_hash, phone_verified_at, account_status, role, created_at, updated_at) VALUES (?, ?, ?, NULL, ?, ?, ?, ?)',
       [data.fullName.trim(), phone, passwordHash, 'pending', 'user', now, now],
     );
-    const user = queryOne<{ id: number }>('SELECT id FROM users WHERE phone = ?', [phone]);
+    const user = await queryOne<{ id: number }>('SELECT id FROM users WHERE phone = ?', [phone]);
     if (!user) throw new Error('USER_CREATE_FAILED');
-    const userId = user.id;
+    const newUserId = user.id;
 
     for (const specialty of data.specialties) {
       if (typeof specialty === 'number') {
-        const specialtyRow = queryOne<{ id: number }>('SELECT id FROM specialties WHERE id = ?', [specialty]);
+        const specialtyRow = await queryOne<{ id: number }>('SELECT id FROM specialties WHERE id = ?', [specialty]);
         if (specialtyRow) {
-          execute('INSERT OR IGNORE INTO user_specialties (user_id, specialty_id, custom_specialty) VALUES (?, ?, NULL)', [
-            userId,
+          await execute('INSERT INTO user_specialties (user_id, specialty_id, custom_specialty) VALUES (?, ?, NULL) ON CONFLICT DO NOTHING', [
+            newUserId,
             specialtyRow.id,
           ]);
         }
@@ -81,20 +82,20 @@ export function register(input: unknown): { user: AuthUser; devCode?: string } {
       }
       const trimmed = specialty.trim();
       if (trimmed) {
-        execute('INSERT INTO user_specialties (user_id, specialty_id, custom_specialty) VALUES (?, NULL, ?)', [userId, trimmed]);
+        await execute('INSERT INTO user_specialties (user_id, specialty_id, custom_specialty) VALUES (?, NULL, ?)', [newUserId, trimmed]);
       }
     }
-    return userId;
+    return newUserId;
   });
 
-  const user = findAuthUserById(userId);
-  const code = issueOtp(phone);
+  const user = await findAuthUserById(userId);
+  const code = await issueOtp(phone);
   const devCode = config.nodeEnv !== 'production' ? code : undefined;
   return { user, devCode };
 }
 
-export function findAuthUserById(id: number): AuthUser {
-  const user = queryOne<{ id: number; fullName: string; phone: string; accountStatus: string; role: string }>(
+export async function findAuthUserById(id: number): Promise<AuthUser> {
+  const user = await queryOne<{ id: number; fullName: string; phone: string; accountStatus: string; role: string }>(
     'SELECT id, full_name AS fullName, phone, account_status AS accountStatus, role FROM users WHERE id = ?',
     [id],
   );
@@ -108,9 +109,9 @@ export function findAuthUserById(id: number): AuthUser {
   };
 }
 
-export function verifyPhone(phone: string, code: string): { user: AuthUser } {
+export async function verifyPhone(phone: string, code: string): Promise<{ user: AuthUser }> {
   const normalizedPhone = phone.replace(/[^0-9]/g, '');
-  const check = verifyOtp(normalizedPhone, code);
+  const check = await verifyOtp(normalizedPhone, code);
   if (!check.ok) {
     const errorMessage =
       check.error === 'OTP_NOT_FOUND'
@@ -124,34 +125,34 @@ export function verifyPhone(phone: string, code: string): { user: AuthUser } {
               : 'Invalid verification code';
     throw badRequest('OTP_INVALID', errorMessage);
   }
-  const user = queryOne<{ id: number; account_status: string }>('SELECT id, account_status FROM users WHERE phone = ?', [normalizedPhone]);
+  const user = await queryOne<{ id: number; account_status: string }>('SELECT id, account_status FROM users WHERE phone = ?', [normalizedPhone]);
   if (!user) throw badRequest('USER_NOT_FOUND', 'User not found');
   if (user.account_status === 'active') {
     throw badRequest('ACCOUNT_ALREADY_VERIFIED', 'This phone number is already verified');
   }
   const now = Math.floor(Date.now() / 1000);
-  execute('UPDATE users SET phone_verified_at = ?, account_status = ?, updated_at = ? WHERE id = ?', [now, 'active', now, user.id]);
-  execute('DELETE FROM otp_codes WHERE phone = ?', [normalizedPhone]);
-  const updated = findAuthUserById(Number(user.id));
+  await execute('UPDATE users SET phone_verified_at = ?, account_status = ?, updated_at = ? WHERE id = ?', [now, 'active', now, user.id]);
+  await execute('DELETE FROM otp_codes WHERE phone = ?', [normalizedPhone]);
+  const updated = await findAuthUserById(Number(user.id));
   return { user: updated };
 }
 
-export function resendOtp(input: unknown): { phone: string; devCode?: string } {
+export async function resendOtp(input: unknown): Promise<{ phone: string; devCode?: string }> {
   const data = validate(resendOtpSchema, input);
   const phone = data.phone.replace(/[^0-9]/g, '');
-  const user = queryOne<{ id: number; account_status: string }>('SELECT id, account_status FROM users WHERE phone = ?', [phone]);
+  const user = await queryOne<{ id: number; account_status: string }>('SELECT id, account_status FROM users WHERE phone = ?', [phone]);
   if (!user) throw notFound('USER_NOT_FOUND', 'User not found');
   if (user.account_status === 'active') {
     throw badRequest('ACCOUNT_ALREADY_VERIFIED', 'This phone number is already verified');
   }
-  const code = issueOtp(phone);
+  const code = await issueOtp(phone);
   return { phone, devCode: config.nodeEnv !== 'production' ? code : undefined };
 }
 
-export function login(input: unknown): { token: string; user: AuthUser } {
+export async function login(input: unknown): Promise<{ token: string; user: AuthUser }> {
   const data = validate(loginSchema, input);
   const phone = data.phone.replace(/[^0-9]/g, '');
-  const user = queryOne<{
+  const user = await queryOne<{
     id: number;
     full_name: string;
     phone: string;
@@ -170,7 +171,7 @@ export function login(input: unknown): { token: string; user: AuthUser } {
     throw badRequest('ACCOUNT_NOT_VERIFIED', 'Please verify your phone number before logging in');
   }
   const token = signToken({ id: user.id, phone: user.phone, role: user.role });
-  const full = findAuthUserById(Number(user.id));
+  const full = await findAuthUserById(Number(user.id));
   return { token, user: full };
 }
 
@@ -179,26 +180,26 @@ export function logout(_req: unknown): { success: true } {
   return { success: true };
 }
 
-export function getSessionUser(userId: number): AuthUser {
+export async function getSessionUser(userId: number): Promise<AuthUser> {
   return findAuthUserById(userId);
 }
 
-export function forgotPassword(input: unknown): { phone: string; devCode?: string } {
+export async function forgotPassword(input: unknown): Promise<{ phone: string; devCode?: string }> {
   const data = validate(forgotPasswordSchema, input);
   const phone = data.phone.replace(/[^0-9]/g, '');
-  const user = queryOne<{ id: number; account_status: string }>('SELECT id, account_status FROM users WHERE phone = ?', [phone]);
+  const user = await queryOne<{ id: number; account_status: string }>('SELECT id, account_status FROM users WHERE phone = ?', [phone]);
   if (!user) {
     // Do not reveal whether the phone is registered.
     throw badRequest('OTP_NOT_FOUND', 'Invalid verification code');
   }
-  const code = issueOtp(phone);
+  const code = await issueOtp(phone);
   return { phone, devCode: config.nodeEnv !== 'production' ? code : undefined };
 }
 
-export function resetPassword(input: unknown): { success: true } {
+export async function resetPassword(input: unknown): Promise<{ success: true }> {
   const data = validate(resetPasswordSchema, input);
   const phone = data.phone.replace(/[^0-9]/g, '');
-  const check = verifyOtp(phone, data.code);
+  const check = await verifyOtp(phone, data.code);
   if (!check.ok) {
     const errorMessage =
       check.error === 'OTP_NOT_FOUND'
@@ -213,20 +214,20 @@ export function resetPassword(input: unknown): { success: true } {
     throw badRequest('OTP_INVALID', errorMessage);
   }
   const passwordHash = hashPassword(data.newPassword);
-  execute('UPDATE users SET password_hash = ?, updated_at = ? WHERE phone = ?', [passwordHash, Math.floor(Date.now() / 1000), phone]);
-  execute('DELETE FROM otp_codes WHERE phone = ?', [phone]);
+  await execute('UPDATE users SET password_hash = ?, updated_at = ? WHERE phone = ?', [passwordHash, Math.floor(Date.now() / 1000), phone]);
+  await execute('DELETE FROM otp_codes WHERE phone = ?', [phone]);
   return { success: true };
 }
 
-export function changePassword(userId: number, input: unknown): { success: true } {
+export async function changePassword(userId: number, input: unknown): Promise<{ success: true }> {
   const data = validate(changePasswordSchema, input);
-  const user = queryOne<{ password_hash: string }>('SELECT password_hash FROM users WHERE id = ?', [userId]);
+  const user = await queryOne<{ password_hash: string }>('SELECT password_hash FROM users WHERE id = ?', [userId]);
   if (!user) throw notFound('USER_NOT_FOUND', 'User not found');
   const ok = comparePassword(data.currentPassword, user.password_hash);
   if (!ok) {
     throw badRequest('INVALID_PASSWORD', 'Current password is incorrect');
   }
   const passwordHash = hashPassword(data.newPassword);
-  execute('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?', [passwordHash, Math.floor(Date.now() / 1000), userId]);
+  await execute('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?', [passwordHash, Math.floor(Date.now() / 1000), userId]);
   return { success: true };
 }

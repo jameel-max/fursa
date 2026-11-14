@@ -63,9 +63,9 @@ export async function getAdminStats() {
   const paymentsRow = payments[0] ?? { total: 0, successful: 0, pending: 0 };
 
   const farmerCount = Number(
-    await query<{ total: number }>(
+    ((await query<{ total: number }>(
       `SELECT COUNT(*) AS total FROM user_specialties us JOIN specialties s ON s.id = us.specialty_id WHERE s.name = 'مزارع'`,
-    )[0]?.total ?? 0,
+    )))[0]?.total ?? 0,
   );
 
   return {
@@ -141,7 +141,7 @@ export async function listAdminUsers(filters: { status?: string; specialty?: str
     role: string;
     created_at: number;
   }>(`SELECT u.id, u.full_name, u.phone, u.account_status, u.role, u.created_at FROM users u ${whereClause} ORDER BY u.created_at DESC LIMIT ? OFFSET ?`, [...params, limit, offset]);
-  const total = Number(await query<{ total: number }>(`SELECT COUNT(*) AS total FROM users u ${whereClause}`, params)[0]?.total ?? 0);
+  const total = Number(((await query<{ total: number }>(`SELECT COUNT(*) AS total FROM users u ${whereClause}`, params)))[0]?.total ?? 0);
   const items = rows.map((row) => ({
     id: row.id,
     fullName: row.full_name,
@@ -161,8 +161,7 @@ export async function setUserStatus(adminUserId: number, userId: number, status:
   const user = await queryOne<{ id: number }>('SELECT id FROM users WHERE id = ?', [userId]);
   if (!user) throw Object.assign(new Error('USER_NOT_FOUND'), { statusCode: 404, code: 'USER_NOT_FOUND' });
   await execute('UPDATE users SET account_status = ?, updated_at = ? WHERE id = ?', [status, Math.floor(Date.now() / 1000), userId]);
-  db.prepare('INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(adminUserId, `USER_${status.toUpperCase()}`, 'user', userId, JSON.stringify({ status }), Math.floor(Date.now() / 1000));
+  await execute('INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)', [adminUserId, `USER_${status.toUpperCase()}`, 'user', userId, JSON.stringify({ status }), Math.floor(Date.now() / 1000)]);
   return { success: true, status };
 }
 
@@ -171,8 +170,7 @@ export async function setListingStatus(adminUserId: number, listingId: number, s
   const listing = await queryOne<{ id: number; user_id: number }>('SELECT id, user_id FROM listings WHERE id = ?', [listingId]);
   if (!listing) throw Object.assign(new Error('LISTING_NOT_FOUND'), { statusCode: 404, code: 'LISTING_NOT_FOUND' });
   await execute('UPDATE listings SET status = ?, updated_at = ? WHERE id = ?', [status, Math.floor(Date.now() / 1000), listingId]);
-  db.prepare('INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(adminUserId, `LISTING_${status.toUpperCase()}`, 'listing', listingId, JSON.stringify({ status }), Math.floor(Date.now() / 1000));
+  await execute('INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)', [adminUserId, `LISTING_${status.toUpperCase()}`, 'listing', listingId, JSON.stringify({ status }), Math.floor(Date.now() / 1000)]);
   return { success: true, status };
 }
 
@@ -243,7 +241,7 @@ export async function listAdminListings(filters: { status?: string; type?: strin
     updated_at: number;
     owner_name: string;
   }>(`SELECT l.id, l.user_id, l.listing_type, l.title, l.status, l.quantity, l.price, l.created_at, l.updated_at, u.full_name AS owner_name FROM listings l JOIN users u ON u.id = l.user_id WHERE ${whereClause} ORDER BY l.updated_at DESC LIMIT ? OFFSET ?`, [...params, limit, offset]);
-  const total = Number(await query<{ total: number }>(`SELECT COUNT(*) AS total FROM listings l WHERE ${whereClause}`, params)[0]?.total ?? 0);
+  const total = Number(((await query<{ total: number }>(`SELECT COUNT(*) AS total FROM listings l WHERE ${whereClause}`, params)))[0]?.total ?? 0);
   const items = rows.map((row) => ({
     id: row.id,
     userId: row.user_id,
@@ -375,10 +373,10 @@ export async function deleteAdminUser(adminUserId: number, userId: number) {
     throw badRequest('CANNOT_DELETE_ADMIN', 'Admin accounts cannot be deleted');
   }
   const now = Math.floor(Date.now() / 1000);
-  withTransaction(() => {
-    db.prepare('DELETE FROM users WHERE id = ?').run(userId);
-    db.prepare('INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(adminUserId, 'USER_DELETED', 'user', userId, null, now);
+  await withTransaction(async () => {
+    await db.prepare('DELETE FROM users WHERE id = ?').run(userId);
+    await execute('INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [adminUserId, 'USER_DELETED', 'user', userId, null, now]);
   });
   return { success: true };
 }
@@ -388,10 +386,10 @@ export async function deleteAdminListing(adminUserId: number, listingId: number)
   const listing = await queryOne<{ id: number }>('SELECT id FROM listings WHERE id = ?', [listingId]);
   if (!listing) throw Object.assign(new Error('LISTING_NOT_FOUND'), { statusCode: 404, code: 'LISTING_NOT_FOUND' });
   const now = Math.floor(Date.now() / 1000);
-  withTransaction(() => {
-    db.prepare('DELETE FROM listings WHERE id = ?').run(listingId);
-    db.prepare('INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(adminUserId, 'LISTING_DELETED', 'listing', listingId, null, now);
+  await withTransaction(async () => {
+    await db.prepare('DELETE FROM listings WHERE id = ?').run(listingId);
+    await execute('INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [adminUserId, 'LISTING_DELETED', 'listing', listingId, null, now]);
   });
   return { success: true };
 }
@@ -409,8 +407,7 @@ export async function cancelAdminSubscription(adminUserId: number, subscriptionI
   }
   const now = Math.floor(Date.now() / 1000);
   await execute('UPDATE subscriptions SET status = ?, auto_renew = 0, updated_at = ? WHERE id = ?', ['canceled', now, subscriptionId]);
-  db.prepare('INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(adminUserId, 'SUBSCRIPTION_CANCELED', 'subscription', subscriptionId, JSON.stringify({ by: 'admin' }), now);
+  await execute('INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)', [adminUserId, 'SUBSCRIPTION_CANCELED', 'subscription', subscriptionId, JSON.stringify({ by: 'admin' }), now]);
   return { success: true, status: 'canceled' };
 }
 
@@ -448,9 +445,10 @@ export async function updateAdminSettings(adminUserId: number, values: Record<st
 
   await withTransaction(async () => {
     for (const [key, value] of Object.entries(values)) {
-      db.prepare(
+      await execute(
         'INSERT INTO platform_settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at',
-      ).run(key, value, now);
+        [key, value, now],
+      );
     }
 
     if (values.free_post_limit !== undefined) {
@@ -465,8 +463,8 @@ export async function updateAdminSettings(adminUserId: number, values: Record<st
       await execute('UPDATE plans SET price = ? WHERE name = ?', [Number(values.professional_price), 'professional']);
     }
 
-    db.prepare('INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(adminUserId, 'SETTINGS_UPDATE', 'settings', null, JSON.stringify(values), now);
+    await execute('INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [adminUserId, 'SETTINGS_UPDATE', 'settings', null, JSON.stringify(values), now]);
   });
 
   return { success: true };

@@ -114,6 +114,7 @@ CREATE TABLE IF NOT EXISTS conversations (
   id SERIAL PRIMARY KEY,
   participant_one_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   participant_two_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  listing_id INTEGER REFERENCES listings(id) ON DELETE SET NULL,
   created_at INTEGER NOT NULL,
   UNIQUE(participant_one_id, participant_two_id)
 );
@@ -219,6 +220,27 @@ CREATE TABLE IF NOT EXISTS otp_codes (
   attempts INTEGER NOT NULL DEFAULT 0,
   verified_at INTEGER,
   created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  endpoint TEXT NOT NULL UNIQUE,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS reviews (
+  id SERIAL PRIMARY KEY,
+  listing_id INTEGER NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+  reviewer_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reviewee_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  comment TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  UNIQUE(listing_id, reviewer_id)
 );
 
 CREATE TABLE IF NOT EXISTS platform_settings (

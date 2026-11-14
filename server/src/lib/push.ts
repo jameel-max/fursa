@@ -3,33 +3,33 @@ import { query, queryOne, execute } from '../db';
 
 let vapidReady = false;
 
-function getSetting(key: string): string | null {
-  const row = queryOne<{ value: string }>('SELECT value FROM platform_settings WHERE key = ?', [key]);
+async function getSetting(key: string): Promise<string | null> {
+  const row = await queryOne<{ value: string }>('SELECT value FROM platform_settings WHERE key = ?', [key]);
   return row?.value ?? null;
 }
 
-function setSetting(key: string, value: string) {
-  execute(
+async function setSetting(key: string, value: string) {
+  await execute(
     'INSERT INTO platform_settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at',
     [key, value, Math.floor(Date.now() / 1000)],
   );
 }
 
-export function getVapidPublicKey(): string {
-  ensureVapid();
-  return getSetting('vapid_public_key')!;
+export async function getVapidPublicKey(): Promise<string> {
+  await ensureVapid();
+  return (await getSetting('vapid_public_key'))!;
 }
 
-function ensureVapid() {
+async function ensureVapid() {
   if (vapidReady) return;
-  let publicKey = process.env.VAPID_PUBLIC_KEY || getSetting('vapid_public_key');
-  let privateKey = process.env.VAPID_PRIVATE_KEY || getSetting('vapid_private_key');
+  let publicKey = process.env.VAPID_PUBLIC_KEY || (await getSetting('vapid_public_key'));
+  let privateKey = process.env.VAPID_PRIVATE_KEY || (await getSetting('vapid_private_key'));
   if (!publicKey || !privateKey) {
     const generated = generateVAPIDKeys();
     publicKey = publicKey || generated.publicKey;
     privateKey = privateKey || generated.privateKey;
-    setSetting('vapid_public_key', publicKey);
-    setSetting('vapid_private_key', privateKey);
+    await setSetting('vapid_public_key', publicKey);
+    await setSetting('vapid_private_key', privateKey);
   }
   const subject = process.env.VAPID_SUBJECT || 'mailto:admin@fursa.app';
   setVapidDetails(subject, publicKey, privateKey);
@@ -41,7 +41,7 @@ export async function sendPushToUser(
   payload: { title: string; body: string; url?: string; tag?: string },
 ): Promise<void> {
   try {
-    ensureVapid();
+    await ensureVapid();
     const subs = await query<{ id: number; endpoint: string; p256dh: string; auth: string }>(
       'SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?',
       [userId],

@@ -131,7 +131,7 @@ export async function logAudit(
   metadata?: Record<string, unknown>,
 ) {
   const database = getDb();
-  database.prepare(
+  await database.prepare(
     'INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)',
   ).run(
     actorId ?? null,

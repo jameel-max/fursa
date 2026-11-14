@@ -15,7 +15,7 @@ export const notificationsSummaryHandler = asyncHandler(async (req: Request, res
 });
 
 export const pushKeyHandler = asyncHandler(async (_req: Request, res: Response) => {
-  return sendSuccess(res, notificationsService.getPushPublicKey());
+  return sendSuccess(res, await notificationsService.getPushPublicKey());
 });
 
 export const pushSubscribeHandler = asyncHandler(async (req: Request, res: Response) => {
