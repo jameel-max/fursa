@@ -290,3 +290,8 @@ CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
 CREATE INDEX IF NOT EXISTS idx_users_status ON users(account_status);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON subscriptions(user_id, status);
 CREATE INDEX IF NOT EXISTS idx_post_usage_user ON post_usage(user_id, billing_period_start);
+CREATE INDEX IF NOT EXISTS idx_listing_images_listing ON listing_images(listing_id, sort_order);
+CREATE INDEX IF NOT EXISTS idx_reviews_reviewee ON reviews(reviewee_id);
+CREATE INDEX IF NOT EXISTS idx_user_specialties_user ON user_specialties(user_id);
+CREATE INDEX IF NOT EXISTS idx_offers_buyer ON offers(buyer_user_id);
+

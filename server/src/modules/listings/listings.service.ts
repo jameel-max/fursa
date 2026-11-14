@@ -94,6 +94,78 @@ function toUnixSeconds(value: unknown): number {
   return Math.floor(numeric);
 }
 
+function inPlaceholders(count: number) {
+  return Array.from({ length: count }, () => '?').join(',');
+}
+
+/** Batch version of buildOwner — one query per relation instead of per listing. */
+async function buildOwnersMap(userIds: number[]): Promise<Map<number, ListingOwner>> {
+  const map = new Map<number, ListingOwner>();
+  const unique = [...new Set(userIds)];
+  if (unique.length === 0) return map;
+  const ph = inPlaceholders(unique.length);
+  const [owners, specs, prefs, ratings] = await Promise.all([
+    query<{
+      id: number; full_name: string; phone: string; account_status: string; role: string;
+      business_name: string | null; governorate_id: number | null; area: string | null;
+    }>(
+      `SELECT u.id, u.full_name, u.phone, u.account_status, u.role, up.business_name, up.governorate_id, up.area
+       FROM users u LEFT JOIN user_profiles up ON up.user_id = u.id WHERE u.id IN (${ph})`,
+      unique,
+    ),
+    query<{ user_id: number; id: number; name: string; custom_specialty: string | null }>(
+      `SELECT us.user_id, s.id, s.name, us.custom_specialty
+       FROM user_specialties us LEFT JOIN specialties s ON s.id = us.specialty_id
+       WHERE us.user_id IN (${ph})`,
+      unique,
+    ),
+    query<{ user_id: number; show_phone: number; whatsapp_enabled: number; internal_messages_enabled: number }>(
+      `SELECT user_id, show_phone, whatsapp_enabled, internal_messages_enabled FROM contact_preferences WHERE user_id IN (${ph})`,
+      unique,
+    ),
+    query<{ reviewee_id: number; average: number | null; count: number }>(
+      `SELECT reviewee_id, AVG(rating) AS average, COUNT(*) AS count FROM reviews WHERE reviewee_id IN (${ph}) GROUP BY reviewee_id`,
+      unique,
+    ),
+  ]);
+
+  const specMap = new Map<number, Array<{ id: number; name: string; customSpecialty: string | null }>>();
+  for (const row of specs) {
+    const list = specMap.get(row.user_id) ?? [];
+    list.push({ id: row.id, name: row.name, customSpecialty: row.custom_specialty });
+    specMap.set(row.user_id, list);
+  }
+  const prefMap = new Map(prefs.map((p) => [p.user_id, p]));
+  const ratingMap = new Map(
+    ratings.map((r) => [
+      r.reviewee_id,
+      { avg: r.average != null ? Math.round(Number(r.average) * 10) / 10 : 0, count: Number(r.count ?? 0) },
+    ]),
+  );
+
+  for (const owner of owners) {
+    const pref = prefMap.get(owner.id);
+    const rating = ratingMap.get(owner.id) ?? { avg: 0, count: 0 };
+    map.set(owner.id, {
+      id: owner.id,
+      fullName: owner.full_name,
+      phone: owner.phone,
+      accountStatus: owner.account_status,
+      role: owner.role,
+      businessName: owner.business_name,
+      governorateId: owner.governorate_id,
+      area: owner.area,
+      specialties: specMap.get(owner.id) ?? [],
+      contactPreferences: pref
+        ? { showPhone: pref.show_phone, whatsappEnabled: pref.whatsapp_enabled, internalMessagesEnabled: pref.internal_messages_enabled }
+        : { showPhone: 0, whatsappEnabled: 0, internalMessagesEnabled: 1 },
+      ratingAvg: rating.avg,
+      ratingCount: rating.count,
+    });
+  }
+  return map;
+}
+
 async function buildOwner(listingUserId: number) {
   const owner = await queryOne<{
     id: number;
@@ -240,36 +312,56 @@ export async function listListings(filters: ListingFilters) {
     [...params, limit, offset],
   );
 
-  const items: ListingDetail[] = [];
-  for (const row of rows) {
-    const images = await query<ListingImage>('SELECT id, image_url AS "imageUrl", sort_order AS "sortOrder" FROM listing_images WHERE listing_id = ? ORDER BY sort_order ASC', [row.id]);
-    const owner = await buildOwner(row.user_id);
-    const offerCount = Number((await query<{ total: number }>('SELECT COUNT(*) AS total FROM offers WHERE listing_id = ?', [row.id]))[0]?.total ?? 0);
-    items.push({
-      id: row.id,
-      userId: row.user_id,
-      listingType: row.listing_type,
-      title: row.title,
-      categoryId: row.category_id,
-      description: row.description,
-      quantity: row.quantity,
-      unitId: row.unit_id,
-      price: row.price,
-      priceType: row.price_type,
-      governorateId: row.governorate_id,
-      area: row.area,
-      status: row.status,
-      featured: row.featured ?? 0,
-      expiresAt: row.expires_at ? toUnixSeconds(row.expires_at) : null,
-      createdAt: toUnixSeconds(row.created_at),
-      updatedAt: toUnixSeconds(row.updated_at),
-      images,
-      owner,
-      offerCount,
-      myReview: null,
-      serviceMeta: parseServiceMeta(row.service_meta),
-    });
+  const listingIds = rows.map((row) => row.id);
+  const ph = inPlaceholders(Math.max(listingIds.length, 1));
+  const [imageRows, ownerMap, offerRows] = await Promise.all([
+    listingIds.length
+      ? query<{ listing_id: number; id: number; imageUrl: string; sortOrder: number }>(
+          `SELECT listing_id, id, image_url AS "imageUrl", sort_order AS "sortOrder"
+           FROM listing_images WHERE listing_id IN (${ph}) ORDER BY listing_id, sort_order`,
+          listingIds,
+        )
+      : Promise.resolve([]),
+    buildOwnersMap(rows.map((row) => row.user_id)),
+    listingIds.length
+      ? query<{ listing_id: number; total: number }>(
+          `SELECT listing_id, COUNT(*) AS total FROM offers WHERE listing_id IN (${ph}) GROUP BY listing_id`,
+          listingIds,
+        )
+      : Promise.resolve([]),
+  ]);
+  const imagesByListing = new Map<number, ListingImage[]>();
+  for (const img of imageRows) {
+    const list = imagesByListing.get(img.listing_id) ?? [];
+    list.push({ id: img.id, imageUrl: img.imageUrl, sortOrder: img.sortOrder });
+    imagesByListing.set(img.listing_id, list);
   }
+  const offerCountMap = new Map(offerRows.map((row) => [row.listing_id, Number(row.total)]));
+
+  const items: ListingDetail[] = rows.map((row) => ({
+    id: row.id,
+    userId: row.user_id,
+    listingType: row.listing_type,
+    title: row.title,
+    categoryId: row.category_id,
+    description: row.description,
+    quantity: row.quantity,
+    unitId: row.unit_id,
+    price: row.price,
+    priceType: row.price_type,
+    governorateId: row.governorate_id,
+    area: row.area,
+    status: row.status,
+    featured: row.featured ?? 0,
+    expiresAt: row.expires_at ? toUnixSeconds(row.expires_at) : null,
+    createdAt: toUnixSeconds(row.created_at),
+    updatedAt: toUnixSeconds(row.updated_at),
+    images: imagesByListing.get(row.id) ?? [],
+    owner: ownerMap.get(row.user_id) ?? null,
+    offerCount: offerCountMap.get(row.id) ?? 0,
+    myReview: null,
+    serviceMeta: parseServiceMeta(row.service_meta),
+  }));
 
   return { items, total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) };
 }
@@ -356,36 +448,56 @@ export async function listMyListings(userId: number, status: string) {
     created_at: number;
     updated_at: number;
   }>('SELECT * FROM listings WHERE ' + conditions.join(' AND ') + ' ORDER BY updated_at DESC', params);
-  const items: ListingDetail[] = [];
-  for (const row of rows) {
-    const images = await query<ListingImage>('SELECT id, image_url AS "imageUrl", sort_order AS "sortOrder" FROM listing_images WHERE listing_id = ? ORDER BY sort_order ASC', [row.id]);
-    const owner = await buildOwner(row.user_id);
-    const offerCount = Number((await query<{ total: number }>('SELECT COUNT(*) AS total FROM offers WHERE listing_id = ?', [row.id]))[0]?.total ?? 0);
-    items.push({
-      id: row.id,
-      userId: row.user_id,
-      listingType: row.listing_type,
-      title: row.title,
-      categoryId: row.category_id,
-      description: row.description,
-      quantity: row.quantity,
-      unitId: row.unit_id,
-      price: row.price,
-      priceType: row.price_type,
-      governorateId: row.governorate_id,
-      area: row.area,
-      status: row.status,
-      featured: row.featured ?? 0,
-      expiresAt: row.expires_at ? toUnixSeconds(row.expires_at) : null,
-      createdAt: toUnixSeconds(row.created_at),
-      updatedAt: toUnixSeconds(row.updated_at),
-      images,
-      owner,
-      offerCount,
-      myReview: null,
-      serviceMeta: parseServiceMeta(row.service_meta),
-    });
+  const listingIds = rows.map((row) => row.id);
+  const ph = inPlaceholders(Math.max(listingIds.length, 1));
+  const [imageRows, ownerMap, offerRows] = await Promise.all([
+    listingIds.length
+      ? query<{ listing_id: number; id: number; imageUrl: string; sortOrder: number }>(
+          `SELECT listing_id, id, image_url AS "imageUrl", sort_order AS "sortOrder"
+           FROM listing_images WHERE listing_id IN (${ph}) ORDER BY listing_id, sort_order`,
+          listingIds,
+        )
+      : Promise.resolve([]),
+    buildOwnersMap(rows.map((row) => row.user_id)),
+    listingIds.length
+      ? query<{ listing_id: number; total: number }>(
+          `SELECT listing_id, COUNT(*) AS total FROM offers WHERE listing_id IN (${ph}) GROUP BY listing_id`,
+          listingIds,
+        )
+      : Promise.resolve([]),
+  ]);
+  const imagesByListing = new Map<number, ListingImage[]>();
+  for (const img of imageRows) {
+    const list = imagesByListing.get(img.listing_id) ?? [];
+    list.push({ id: img.id, imageUrl: img.imageUrl, sortOrder: img.sortOrder });
+    imagesByListing.set(img.listing_id, list);
   }
+  const offerCountMap = new Map(offerRows.map((row) => [row.listing_id, Number(row.total)]));
+
+  const items: ListingDetail[] = rows.map((row) => ({
+    id: row.id,
+    userId: row.user_id,
+    listingType: row.listing_type,
+    title: row.title,
+    categoryId: row.category_id,
+    description: row.description,
+    quantity: row.quantity,
+    unitId: row.unit_id,
+    price: row.price,
+    priceType: row.price_type,
+    governorateId: row.governorate_id,
+    area: row.area,
+    status: row.status,
+    featured: row.featured ?? 0,
+    expiresAt: row.expires_at ? toUnixSeconds(row.expires_at) : null,
+    createdAt: toUnixSeconds(row.created_at),
+    updatedAt: toUnixSeconds(row.updated_at),
+    images: imagesByListing.get(row.id) ?? [],
+    owner: ownerMap.get(row.user_id) ?? null,
+    offerCount: offerCountMap.get(row.id) ?? 0,
+    myReview: null,
+    serviceMeta: parseServiceMeta(row.service_meta),
+  }));
   return items;
 }
 
