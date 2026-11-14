@@ -1,31 +1,73 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { AdBanner } from '../types';
 
 const ROTATE_MS = 10000;
 
+type Frame = { left: number; top: number; width: number; height: number };
+
 function AdSlide({ ad }: { ad: AdBanner }) {
-  const inner = (
+  const wrapRef = useRef<HTMLElement | null>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [frame, setFrame] = useState<Frame | null>(null);
+
+  const compute = () => {
+    const wrap = wrapRef.current;
+    const img = imgRef.current;
+    if (!wrap || !img || !img.naturalWidth || !img.naturalHeight) return;
+    const cw = wrap.clientWidth;
+    const ch = wrap.clientHeight;
+    if (!cw || !ch) return;
+    const scale = Math.min(cw / img.naturalWidth, ch / img.naturalHeight);
+    const w = img.naturalWidth * scale;
+    const h = img.naturalHeight * scale;
+    setFrame({
+      left: (cw - w) / 2,
+      top: (ch - h) / 2,
+      width: w,
+      height: h,
+    });
+  };
+
+  useEffect(() => {
+    compute();
+    window.addEventListener('resize', compute);
+    return () => window.removeEventListener('resize', compute);
+  });
+
+  const media = (
     <>
-      <img src={ad.imageUrl} alt={ad.title} className="hero-ad-img" />
-      <div className="hero-ad-overlay" />
-      {ad.title ? <div className="hero-ad-caption">{ad.title}</div> : null}
+      <img ref={imgRef} src={ad.imageUrl} alt={ad.title} className="hero-ad-img" onLoad={compute} />
+      {frame ? (
+        <div className="hero-ad-frame" style={{ left: frame.left, top: frame.top, width: frame.width, height: frame.height }}>
+          <div className="hero-ad-overlay" />
+          {ad.title ? <div className="hero-ad-caption">{ad.title}</div> : null}
+        </div>
+      ) : null}
     </>
   );
+
+  const slideProps = {
+    className: 'hero-ad-slide',
+    ref: (el: HTMLElement | null) => {
+      wrapRef.current = el;
+    },
+  };
+
   if (ad.linkUrl) {
     const external = /^https?:\/\//i.test(ad.linkUrl);
     return (
       <a
+        {...slideProps}
         href={ad.linkUrl}
-        className="hero-ad-slide"
         target={external ? '_blank' : undefined}
         rel={external ? 'noopener noreferrer' : undefined}
       >
-        {inner}
+        {media}
       </a>
     );
   }
-  return <div className="hero-ad-slide">{inner}</div>;
+  return <div {...slideProps}>{media}</div>;
 }
 
 export function BannerCarousel({ ads }: { ads: AdBanner[] }) {

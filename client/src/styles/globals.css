@@ -735,6 +735,10 @@ button {
   display: block;
 }
 
+.hero-ad-frame {
+  position: absolute;
+}
+
 .hero-ad-img {
   width: 100%;
   height: 100%;
