@@ -2241,6 +2241,7 @@ button {
   flex-shrink: 0;
   background: var(--surface-2);
   display: block;
+  overflow: hidden;
 }
 
 .listing-row-media img {
@@ -2252,7 +2253,34 @@ button {
 
 @media (max-width: 640px) {
   .listing-row { flex-direction: column; }
-  .listing-row-media { width: 100%; min-height: 150px; max-height: 190px; }
+  .listing-row-media {
+    width: 100%;
+    min-height: 0;
+    max-height: none;
+    aspect-ratio: 2 / 1;
+  }
+
+  /* Dashboard listing rows: clearer title, readable meta, tidy badges/actions */
+  .listing-row .listing-title {
+    font-size: 1.1rem;
+    line-height: 1.55;
+    overflow-wrap: break-word;
+  }
+  .listing-title-full {
+    display: block;
+    -webkit-line-clamp: unset;
+    overflow: visible;
+  }
+  .listing-row .listing-meta {
+    font-size: 0.86rem;
+    color: var(--ink-soft);
+    row-gap: 0.3rem;
+  }
+  .listing-row .listing-meta span + span::before {
+    content: '·';
+    margin-inline-end: 0.55rem;
+    color: var(--line-strong);
+  }
 }
 
 /* Image uploader */

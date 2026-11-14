@@ -182,7 +182,7 @@ export function MyListingsPage() {
                       {categoryName ? <Badge tone="muted">{categoryName}</Badge> : null}
                     </div>
 
-                    <Link to={`/market/${listing.id}`} className="listing-title" style={{ fontSize: '1.05rem' }}>
+                    <Link to={`/market/${listing.id}`} className="listing-title listing-title-full">
                       {listing.title}
                     </Link>
 
