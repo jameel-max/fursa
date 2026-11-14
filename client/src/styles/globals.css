@@ -708,16 +708,13 @@ button {
   position: relative;
   z-index: 1;
   overflow: hidden;
-  aspect-ratio: 21 / 9;
-  max-height: 540px;
-  min-height: 260px;
+  height: clamp(220px, 34vw, 400px);
   background: #12241a;
 }
 
 @media (max-width: 720px) {
   .hero-ads {
-    aspect-ratio: 4 / 3;
-    min-height: 220px;
+    height: clamp(200px, 52vw, 280px);
   }
 }
 
