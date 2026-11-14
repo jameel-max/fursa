@@ -127,7 +127,7 @@ export function OffersPage() {
     try {
       const result = await api<{ conversationId: number }>('/messages', {
         method: 'POST',
-        body: { recipientId: offer.buyerId },
+        body: { recipientId: offer.buyerId, listingId: offer.listingId },
       });
       navigate(`/dashboard/messages/${result.conversationId}`);
     } catch (err) {

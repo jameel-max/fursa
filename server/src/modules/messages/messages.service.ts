@@ -9,6 +9,8 @@ export interface ConversationSummary {
   lastMessage: string | null;
   lastMessageAt: number | null;
   unreadCount: number;
+  listingId: number | null;
+  listingTitle: string | null;
 }
 
 function toUnixSeconds(value: unknown): number {
@@ -22,12 +24,15 @@ export async function listConversations(userId: number): Promise<ConversationSum
     id: number;
     participant_one_id: number;
     participant_two_id: number;
+    listing_id: number | null;
     last_message: string | null;
     last_message_at: number | null;
+    listing_title: string | null;
   }>(
-    `SELECT c.id, c.participant_one_id, c.participant_two_id,
+    `SELECT c.id, c.participant_one_id, c.participant_two_id, c.listing_id,
             (SELECT m.content FROM messages m WHERE m.conversation_id = c.id ORDER BY m.id DESC LIMIT 1) AS last_message,
-            (SELECT m.created_at FROM messages m WHERE m.conversation_id = c.id ORDER BY m.id DESC LIMIT 1) AS last_message_at
+            (SELECT m.created_at FROM messages m WHERE m.conversation_id = c.id ORDER BY m.id DESC LIMIT 1) AS last_message_at,
+            (SELECT l.title FROM listings l WHERE l.id = c.listing_id) AS listing_title
      FROM conversations c
      WHERE c.participant_one_id = ? OR c.participant_two_id = ?
      ORDER BY last_message_at DESC`,
@@ -50,26 +55,30 @@ export async function listConversations(userId: number): Promise<ConversationSum
       lastMessage: row.last_message,
       lastMessageAt: row.last_message_at ? toUnixSeconds(row.last_message_at) : null,
       unreadCount: unread,
+      listingId: row.listing_id ?? null,
+      listingTitle: row.listing_title ?? null,
     });
   }
   return summaries;
 }
 
-export async function getOrCreateConversation(userId: number, otherUserId: number) {
+export async function getOrCreateConversation(userId: number, otherUserId: number, listingId?: number | null) {
   const db = getDb();
   const first = Math.min(userId, otherUserId);
   const second = Math.max(userId, otherUserId);
-  const existing = await queryOne<{ id: number }>(
-    'SELECT id FROM conversations WHERE participant_one_id = ? AND participant_two_id = ? LIMIT 1',
+  const existing = await queryOne<{ id: number; listing_id: number | null }>(
+    'SELECT id, listing_id FROM conversations WHERE participant_one_id = ? AND participant_two_id = ? LIMIT 1',
     [first, second],
   );
   let conversationId = existing?.id;
   if (!conversationId) {
     const info = await execute(
-      'INSERT INTO conversations (participant_one_id, participant_two_id, created_at) VALUES (?, ?, ?)',
-      [first, second, Math.floor(Date.now() / 1000)],
+      'INSERT INTO conversations (participant_one_id, participant_two_id, listing_id, created_at) VALUES (?, ?, ?, ?)',
+      [first, second, listingId ?? null, Math.floor(Date.now() / 1000)],
     );
     conversationId = Number(info.lastInsertRowid);
+  } else if (listingId && !existing?.listing_id) {
+    await execute('UPDATE conversations SET listing_id = ? WHERE id = ?', [listingId, conversationId]);
   }
   return conversationId;
 }
@@ -87,7 +96,13 @@ export async function startConversation(userId: number, input: unknown) {
   if (recipient.account_status !== 'active') {
     throw badRequest('RECIPIENT_UNAVAILABLE', 'This user is not available for messaging');
   }
-  const conversationId = getOrCreateConversation(userId, recipientId);
+  const rawListingId = Number((input as { listingId?: unknown })?.listingId);
+  let listingId: number | null = null;
+  if (Number.isInteger(rawListingId) && rawListingId > 0) {
+    const listing = await queryOne<{ id: number }>('SELECT id FROM listings WHERE id = ?', [rawListingId]);
+    if (listing) listingId = listing.id;
+  }
+  const conversationId = await getOrCreateConversation(userId, recipientId, listingId);
   return { conversationId };
 }
 

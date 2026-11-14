@@ -116,6 +116,7 @@ CREATE TABLE IF NOT EXISTS conversations (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   participant_one_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   participant_two_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  listing_id INTEGER REFERENCES listings(id) ON DELETE SET NULL,
   created_at INTEGER NOT NULL,
   UNIQUE(participant_one_id, participant_two_id)
 );

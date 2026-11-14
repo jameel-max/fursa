@@ -117,7 +117,7 @@ export function ListingDetailPage() {
     try {
       const data = await api<{ conversationId: number }>('/messages', {
         method: 'POST',
-        body: { recipientId: listing.owner.id },
+        body: { recipientId: listing.owner.id, listingId: listing.id },
       });
       navigate(`/dashboard/messages/${data.conversationId}`);
     } catch (err) {

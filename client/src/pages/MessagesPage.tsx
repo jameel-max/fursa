@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowRight, Inbox, MessageSquare, RefreshCw, Search, Send } from 'lucide-react';
+import { ArrowRight, Inbox, MessageSquare, RefreshCw, Search, Send, Tag } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -191,6 +191,11 @@ export function MessagesPage() {
                         )}
                       </div>
                       <div className="conv-preview">{conversation.lastMessage ?? 'لا توجد رسائل بعد'}</div>
+                      {conversation.listingTitle ? (
+                        <div className="conv-listing">
+                          <Tag size={11} /> بخصوص: {conversation.listingTitle}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 </Link>
@@ -219,7 +224,18 @@ export function MessagesPage() {
                     <Avatar name={selected?.otherUserName ?? 'مستخدم'} />
                     <div>
                       <div className="strong">{selected?.otherUserName ?? `محادثة #${selectedId}`}</div>
-                      <div className="small muted">محادثة داخلية محفوظة في المنصة</div>
+                      <div className="small muted">
+                        {selected?.listingTitle ? (
+                          <>
+                            بخصوص إعلان:{' '}
+                            <Link to={`/market/${selected.listingId}`} className="conv-listing-link">
+                              {selected.listingTitle}
+                            </Link>
+                          </>
+                        ) : (
+                          'محادثة داخلية محفوظة في المنصة'
+                        )}
+                      </div>
                     </div>
                   </div>
                   <button

@@ -199,6 +199,8 @@ export interface Conversation {
   lastMessage: string | null;
   lastMessageAt: number | null;
   unreadCount: number;
+  listingId?: number | null;
+  listingTitle?: string | null;
 }
 
 export interface ChatMessage {

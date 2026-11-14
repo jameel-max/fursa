@@ -6,6 +6,12 @@ export async function seed() {
   const schema = loadSchemaSql();
   await execSql(schema);
 
+  try {
+    await execute('ALTER TABLE conversations ADD COLUMN listing_id INTEGER REFERENCES listings(id) ON DELETE SET NULL');
+  } catch {
+    // column already exists
+  }
+
   const insertSpecialty = (name: string) => {
     const result = execute('INSERT INTO specialties (name, is_active) VALUES (?, 1) ON CONFLICT DO NOTHING', [name]);
     return Number(result.lastInsertRowid);
