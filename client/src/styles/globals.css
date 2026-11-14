@@ -709,6 +709,9 @@ button {
   z-index: 1;
   overflow: hidden;
   height: clamp(220px, 34vw, 400px);
+  margin: clamp(12px, 2vw, 24px);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
   background: #12241a;
 }
 
