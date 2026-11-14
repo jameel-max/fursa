@@ -82,7 +82,7 @@ export interface Listing {
   userId: number;
   listingType: ListingType;
   title: string;
-  categoryId: number;
+  categoryId: number | null;
   description: string | null;
   quantity: number;
   unitId: number;

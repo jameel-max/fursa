@@ -102,7 +102,7 @@ export const createListingSchema = z
   .object({
     listingType: listingTypeSchema,
     title: z.string().trim().min(3, 'Title must be at least 3 characters').max(120, 'Title is too long'),
-    categoryId: categoryIdField,
+    categoryId: optionalNumeric(z.number().int().positive()),
     description: z.string().max(3000).optional(),
     quantity: quantityField.optional(),
     unitId: unitIdField.optional(),

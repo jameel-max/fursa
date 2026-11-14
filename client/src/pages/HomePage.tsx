@@ -260,7 +260,7 @@ export function HomePage() {
                   listing={listing}
                   unitName={unitMap.get(listing.unitId)?.name}
                   governorateName={listing.governorateId ? governorateMap.get(listing.governorateId)?.nameAr : undefined}
-                  categoryName={categoryMap.get(listing.categoryId)?.name}
+                  categoryName={listing.categoryId ? categoryMap.get(listing.categoryId)?.name : undefined}
                   isFavorite={favoriteIds.has(listing.id)}
                   onToggleFavorite={user ? (id) => void toggleFavorite(id) : undefined}
                 />
@@ -303,7 +303,7 @@ export function HomePage() {
                   listing={listing}
                   unitName={unitMap.get(listing.unitId)?.name}
                   governorateName={listing.governorateId ? governorateMap.get(listing.governorateId)?.nameAr : undefined}
-                  categoryName={categoryMap.get(listing.categoryId)?.name}
+                  categoryName={listing.categoryId ? categoryMap.get(listing.categoryId)?.name : undefined}
                   isFavorite={favoriteIds.has(listing.id)}
                   onToggleFavorite={user ? (id) => void toggleFavorite(id) : undefined}
                 />

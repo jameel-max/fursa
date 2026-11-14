@@ -1,4 +1,5 @@
 import { getDb, query, queryOne, execute, withTransaction, insertAndGetId } from '../../db';
+import { config } from '../../config';
 import { badRequest, notFound } from '../../lib/ApiError';
 import { validate } from '../../lib/validate';
 import { z } from 'zod';
@@ -50,7 +51,7 @@ export interface ListingDetail {
   userId: number;
   listingType: string;
   title: string;
-  categoryId: number;
+  categoryId: number | null;
   description: string | null;
   quantity: number;
   unitId: number;
@@ -72,8 +73,7 @@ export interface ListingDetail {
   sectionOther: string | null;
 }
 
-export interface ServiceMeta {
-  serviceKind?: string;
+export interface ServiceMeta {  serviceKind?: string;
   vehicleType?: string;
   loadCapacity?: string;
   serviceAreas?: string;
@@ -100,6 +100,36 @@ function toUnixSeconds(value: unknown): number {
 function inPlaceholders(count: number) {
   return Array.from({ length: count }, () => '?').join(',');
 }
+
+const isPostgres = Boolean(config.databaseUrl);
+
+/** Normalise Arabic spelling variants so "بندورة"/"بندور"/"بندوره" match the same text. */
+function normalizeArabic(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[ً-ٰٟـ]/g, '')
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي')
+    .replace(/ؤ/g, 'و')
+    .replace(/ئ/g, 'ي')
+    .trim();
+}
+
+/** Extra candidate terms for engines without regexp_replace (SQLite dev fallback). */
+function arabicSearchVariants(term: string): string[] {
+  const normalized = normalizeArabic(term);
+  const variants = new Set<string>([term.trim(), normalized]);
+  if (normalized) {
+    variants.add(normalized.replace(/ه/g, ''));
+    variants.add(normalized.replace(/ي/g, ''));
+  }
+  return [...variants].filter(Boolean).slice(0, 8);
+}
+
+const SEARCH_TEXT_PG = `lower(coalesce(l.title,'') || ' ' || coalesce(l.description,'') || ' ' || coalesce(l.section_other,'') || ' ' || coalesce(u.full_name,''))`;
+const SEARCH_TEXT_PG_NORM = `regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(${SEARCH_TEXT_PG}, '[ً-ٰٟـ]', '', 'g'), '[أإآٱ]', 'ا', 'g'), 'ة', 'ه', 'g'), 'ى', 'ي', 'g'), 'ؤ', 'و', 'g'), 'ئ', 'ي', 'g')`;
+const SEARCH_FIELDS_SQLITE = ['l.title', 'l.description', 'l.section_other', 'u.full_name'];
 
 /** Batch version of buildOwner — one query per relation instead of per listing. */
 async function buildOwnersMap(userIds: number[]): Promise<Map<number, ListingOwner>> {
@@ -262,9 +292,22 @@ export async function listListings(filters: ListingFilters) {
     params.push(filters.minQuantity);
   }
   if (filters.search) {
-    conditions.push('(l.title LIKE ? OR l.description LIKE ? OR u.full_name LIKE ?)');
-    const pattern = `%${filters.search}%`;
-    params.push(pattern, pattern, pattern);
+    if (isPostgres) {
+      conditions.push(`${SEARCH_TEXT_PG_NORM} LIKE ?`);
+      params.push(`%${normalizeArabic(filters.search)}%`);
+    } else {
+      const variants = arabicSearchVariants(filters.search);
+      const ors: string[] = [];
+      for (const _variant of variants) {
+        for (const field of SEARCH_FIELDS_SQLITE) ors.push(`${field} LIKE ?`);
+      }
+      conditions.push(`(${ors.join(' OR ')})`);
+      for (const variant of variants) {
+        for (let i = 0; i < SEARCH_FIELDS_SQLITE.length; i += 1) {
+          params.push(`%${variant}%`);
+        }
+      }
+    }
   }
 
   const whereClause = conditions.join(' AND ');
@@ -290,7 +333,7 @@ export async function listListings(filters: ListingFilters) {
     user_id: number;
     listing_type: string;
     title: string;
-    category_id: number;
+    category_id: number | null;
     description: string;
     quantity: number;
     unit_id: number;
@@ -383,7 +426,7 @@ export async function getListingById(id: number, viewerId: number | undefined) {
     user_id: number;
     listing_type: string;
     title: string;
-    category_id: number;
+    category_id: number | null;
     description: string;
     quantity: number;
     unit_id: number;
@@ -448,7 +491,7 @@ export async function listMyListings(userId: number, status: string) {
     user_id: number;
     listing_type: string;
     title: string;
-    category_id: number;
+    category_id: number | null;
     description: string;
     quantity: number;
     unit_id: number;
@@ -543,7 +586,7 @@ export async function createListing(userId: number, input: unknown, imageUrls: s
         userId,
         data.listingType,
         data.title.trim(),
-        data.categoryId,
+        data.categoryId ?? null,
         data.description ?? null,
         data.quantity ?? 0,
         data.unitId ?? null,

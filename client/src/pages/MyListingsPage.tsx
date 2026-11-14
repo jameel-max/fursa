@@ -154,7 +154,7 @@ export function MyListingsPage() {
           {filtered.map((listing) => {
             const unitName = unitMap.get(listing.unitId)?.name;
             const governorateName = listing.governorateId ? governorateMap.get(listing.governorateId)?.nameAr : undefined;
-            const categoryName = categoryMap.get(listing.categoryId)?.name;
+            const categoryName = listing.categoryId ? categoryMap.get(listing.categoryId)?.name : undefined;
             return (
               <Card key={listing.id} className="card-pad" style={{ padding: 0, overflow: 'hidden' }}>
                 <div className="listing-row">

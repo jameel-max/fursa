@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   ArrowRight,
@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { compressImage } from '../lib/image';
-import { flattenCategories, useCatalog } from '../lib/catalog';
+import { useCatalog } from '../lib/catalog';
 import { useToast } from '../context/ToastContext';
 import { LISTING_SECTIONS, SECTION_LABELS } from '../lib/sections';
 import type { Listing, ListingImage, ListingSection, ListingType, PriceType, ServiceKind } from '../types';
@@ -51,7 +51,7 @@ export function ListingFormPage() {
   const isEdit = Boolean(listingId);
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { categories, units, governorates, loading: catalogLoading, error: catalogError } = useCatalog();
+  const { units, governorates, loading: catalogLoading, error: catalogError } = useCatalog();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const initialType = searchParams.get('type');
@@ -65,7 +65,6 @@ export function ListingFormPage() {
     initialType === 'request' || initialType === 'service' ? initialType : 'offer',
   );
   const [title, setTitle] = useState('');
-  const [categoryId, setCategoryId] = useState('');
   const [quantity, setQuantity] = useState('');
   const [unitId, setUnitId] = useState('');
   const [priceType, setPriceType] = useState<PriceType>('fixed');
@@ -109,7 +108,6 @@ export function ListingFormPage() {
         if (!active) return;
         setListingType(data.listingType);
         setTitle(data.title);
-        setCategoryId(String(data.categoryId));
         setQuantity(String(data.quantity));
         setUnitId(String(data.unitId));
         setPriceType(data.priceType);
@@ -138,22 +136,6 @@ export function ListingFormPage() {
       active = false;
     };
   }, [isEdit, listingId]);
-
-  const categoryOptions = useMemo(() => {
-    const flat = flattenCategories(categories);
-    const depthMap = new Map<number, number>();
-    const walk = (nodes: typeof categories, depth: number) => {
-      for (const node of nodes) {
-        depthMap.set(node.id, depth);
-        walk(node.children, depth + 1);
-      }
-    };
-    walk(categories, 0);
-    return flat.map((category) => ({
-      value: category.id,
-      label: `${'— '.repeat(depthMap.get(category.id) ?? 0)}${category.name}`,
-    }));
-  }, [categories]);
 
   const totalImages = existingImages.length + newFiles.length;
   const remainingImages = Math.max(0, 5 - totalImages);
@@ -217,7 +199,6 @@ export function ListingFormPage() {
     setError(null);
     const errors: Record<string, string> = {};
     if (title.trim().length < 3) errors.title = 'عنوان الإعلان يجب أن يكون 3 أحرف على الأقل.';
-    if (!categoryId) errors.categoryId = 'اختر تصنيف الإعلان.';
     if (listingType !== 'service') {
       if (!quantity || Number(quantity) < 1) errors.quantity = 'أدخل كمية صحيحة أكبر من صفر.';
       if (!unitId) errors.unitId = 'اختر وحدة القياس.';
@@ -242,7 +223,6 @@ export function ListingFormPage() {
 
     const formData = new FormData();
     formData.append('title', title.trim());
-    formData.append('categoryId', categoryId);
     if (quantity.trim()) formData.append('quantity', quantity);
     if (unitId) formData.append('unitId', unitId);
     formData.append('priceType', priceType);
@@ -281,7 +261,7 @@ export function ListingFormPage() {
     }
   };
 
-  if (loading || (catalogLoading && categories.length === 0)) {
+  if (loading || (catalogLoading && units.length === 0 && governorates.length === 0)) {
     return (
       <div className="stack">
         <LoadingBlock label="جارٍ تحضير نموذج الإعلان…" />
@@ -438,15 +418,6 @@ export function ListingFormPage() {
           />
 
           <div className="form-grid">
-            <Select
-              label="التصنيف"
-              required
-              value={categoryId}
-              onChange={(event) => setCategoryId(event.target.value)}
-              options={categoryOptions}
-              placeholder="اختر التصنيف"
-              error={fieldErrors.categoryId}
-            />
             {listingType !== 'service' ? (
             <Select
               label="وحدة القياس"

@@ -66,7 +66,8 @@ export function ListingDetailPage() {
         setListing(data);
         setActiveImage(0);
         setOfferQuantity(String(data.quantity));
-        const relatedData = await api<ListingList>(`/listings?categoryId=${data.categoryId}&limit=3`);
+        const relatedQuery = data.section ? `section=${data.section}` : `listingType=${data.listingType}`;
+        const relatedData = await api<ListingList>(`/listings?${relatedQuery}&limit=4`);
         if (active) setRelated(relatedData.items.filter((item) => item.id !== data.id).slice(0, 3));
       } catch (err) {
         if (active) setError(err instanceof Error ? err.message : 'تعذّر تحميل الإعلان.');
@@ -82,7 +83,7 @@ export function ListingDetailPage() {
   const isOwner = Boolean(user && listing && user.id === listing.userId);
   const unitName = listing ? unitMap.get(listing.unitId)?.name : undefined;
   const governorateName = listing?.governorateId ? governorateMap.get(listing.governorateId)?.nameAr : undefined;
-  const categoryName = listing ? categoryMap.get(listing.categoryId)?.name : undefined;
+  const categoryName = listing?.categoryId ? categoryMap.get(listing.categoryId)?.name : undefined;
   const image = listing?.images[activeImage]?.imageUrl ?? listing?.images[0]?.imageUrl ?? null;
 
   const phoneVisible = Boolean(listing?.owner?.contactPreferences.showPhone);
@@ -206,7 +207,7 @@ export function ListingDetailPage() {
         <span aria-hidden="true">/</span>
         {categoryName ? (
           <>
-            <Link to={`/market?categoryId=${listing.categoryId}`}>{categoryName}</Link>
+            <span>{categoryName}</span>
             <span aria-hidden="true">/</span>
           </>
         ) : null}
@@ -557,7 +558,7 @@ export function ListingDetailPage() {
                 listing={item}
                 unitName={unitMap.get(item.unitId)?.name}
                 governorateName={item.governorateId ? governorateMap.get(item.governorateId)?.nameAr : undefined}
-                categoryName={categoryMap.get(item.categoryId)?.name}
+                categoryName={item.categoryId ? categoryMap.get(item.categoryId)?.name : undefined}
                 isFavorite={favoriteIds.has(item.id)}
                 onToggleFavorite={user ? (listingIdValue) => void toggleFavorite(listingIdValue) : undefined}
               />

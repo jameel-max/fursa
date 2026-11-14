@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Funnel, Leaf, RotateCcw, Search, SlidersHorizontal } from 'lucide-react';
 import { api, toQuery } from '../lib/api';
-import { useCatalog, flattenCategories } from '../lib/catalog';
+import { useCatalog } from '../lib/catalog';
 import { listingTypeLabel } from '../lib/format';
 import { LISTING_SECTIONS } from '../lib/sections';
 import type { Listing, ListingList, ListingType } from '../types';
@@ -25,12 +25,11 @@ export function MarketPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { ids: favoriteIds, toggle: toggleFavorite } = useFavorites();
-  const { categories, units, governorates, specialties, unitMap, governorateMap, categoryMap } = useCatalog();
+  const { units, governorates, specialties, unitMap, governorateMap, categoryMap } = useCatalog();
 
   const [draft, setDraft] = useState({
     search: searchParams.get('search') ?? '',
     listingType: searchParams.get('type') ?? '',
-    categoryId: searchParams.get('categoryId') ?? '',
     governorateId: searchParams.get('governorateId') ?? '',
     minPrice: searchParams.get('minPrice') ?? '',
     maxPrice: searchParams.get('maxPrice') ?? '',
@@ -50,8 +49,7 @@ export function MarketPage() {
     setDraft({
       search: searchParams.get('search') ?? '',
       listingType: searchParams.get('type') ?? '',
-      categoryId: searchParams.get('categoryId') ?? '',
-      governorateId: searchParams.get('governorateId') ?? '',
+        governorateId: searchParams.get('governorateId') ?? '',
       minPrice: searchParams.get('minPrice') ?? '',
       maxPrice: searchParams.get('maxPrice') ?? '',
       sort: searchParams.get('sort') ?? 'rating',
@@ -65,7 +63,7 @@ export function MarketPage() {
       setError(null);
       const source = new URLSearchParams(queryString);
       const params = new URLSearchParams();
-      for (const key of ['search', 'categoryId', 'specialtyId', 'section', 'governorateId', 'minPrice', 'maxPrice', 'sort', 'page']) {
+      for (const key of ['search', 'specialtyId', 'section', 'governorateId', 'minPrice', 'maxPrice', 'sort', 'page']) {
         const value = source.get(key);
         if (value) params.set(key, value);
       }
@@ -90,7 +88,6 @@ export function MarketPage() {
     const params = new URLSearchParams();
     if (draft.search.trim()) params.set('search', draft.search.trim());
     if (draft.listingType) params.set('type', draft.listingType);
-    if (draft.categoryId) params.set('categoryId', draft.categoryId);
     if (draft.governorateId) params.set('governorateId', draft.governorateId);
     if (draft.minPrice) params.set('minPrice', draft.minPrice);
     if (draft.maxPrice) params.set('maxPrice', draft.maxPrice);
@@ -106,7 +103,6 @@ export function MarketPage() {
     setDraft({
       search: '',
       listingType: '',
-      categoryId: '',
       governorateId: '',
       minPrice: '',
       maxPrice: '',
@@ -122,7 +118,6 @@ export function MarketPage() {
     setSearchParams(params);
   };
 
-  const flatCategories = flattenCategories(categories);
   const activeType = searchParams.get('type');
   const activeSpecialtyId = searchParams.get('specialtyId');
   const activeSpecialty = activeSpecialtyId
@@ -135,7 +130,6 @@ export function MarketPage() {
   const hasFilters = Array.from(searchParams.keys()).some((key) => key !== 'page');
   const activeFilterCount = [
     searchParams.get('type'),
-    searchParams.get('categoryId'),
     searchParams.get('specialtyId'),
     searchParams.get('section'),
     searchParams.get('governorateId'),
@@ -213,24 +207,6 @@ export function MarketPage() {
             <option value="offer">عروض بيع</option>
             <option value="request">طلبات شراء</option>
             <option value="service">خدمات</option>
-          </select>
-        </div>
-
-        <div className="field">
-          <label htmlFor="market-category">الفئة</label>
-          <select
-            id="market-category"
-            className="select"
-            value={draft.categoryId}
-            onChange={(event) => setDraft({ ...draft, categoryId: event.target.value })}
-          >
-            <option value="">كل الفئات</option>
-            {flatCategories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.parentId ? '— ' : ''}
-                {category.name}
-              </option>
-            ))}
           </select>
         </div>
 
@@ -378,7 +354,7 @@ export function MarketPage() {
                 listing={listing}
                 unitName={unitMap.get(listing.unitId)?.name}
                 governorateName={listing.governorateId ? governorateMap.get(listing.governorateId)?.nameAr : undefined}
-                categoryName={categoryMap.get(listing.categoryId)?.name}
+                categoryName={listing.categoryId ? categoryMap.get(listing.categoryId)?.name : undefined}
                 isFavorite={favoriteIds.has(listing.id)}
                 onToggleFavorite={user ? (id) => void toggleFavorite(id) : undefined}
               />
