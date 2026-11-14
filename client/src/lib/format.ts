@@ -69,11 +69,16 @@ export const listingTypeLabel: Record<ListingType, string> = {
 
 export const serviceKindLabel: Record<string, string> = {
   transport: 'نقل',
+  daily_labor: 'عمال مياومة',
   packing: 'تعبئة وتغليف',
   consulting: 'استشارات زراعية',
   maintenance: 'صيانة معدات',
   harvesting: 'حصاد',
   irrigation: 'أنظمة ري',
+  spraying: 'رش ومكافحة آفات',
+  pruning: 'تقليم',
+  sowing: 'زراعة وتسوية',
+  equipment_rental: 'تأجير معدات',
   other: 'أخرى',
 };
 

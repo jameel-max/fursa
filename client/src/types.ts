@@ -4,7 +4,19 @@ export type ListingType = 'offer' | 'request' | 'service';
 
 export type ListingSection = 'vegetables' | 'fruits' | 'supplies' | 'labor' | 'transport' | 'packing' | 'other';
 
-export type ServiceKind = 'transport' | 'packing' | 'consulting' | 'maintenance' | 'harvesting' | 'irrigation' | 'other';
+export type ServiceKind =
+  | 'transport'
+  | 'daily_labor'
+  | 'packing'
+  | 'consulting'
+  | 'maintenance'
+  | 'harvesting'
+  | 'irrigation'
+  | 'spraying'
+  | 'pruning'
+  | 'sowing'
+  | 'equipment_rental'
+  | 'other';
 
 export interface ServiceMeta {
   serviceKind?: ServiceKind;
@@ -12,6 +24,7 @@ export interface ServiceMeta {
   loadCapacity?: string;
   serviceAreas?: string;
   deliveryTime?: string;
+  crewSize?: string;
 }
 export type ListingStatus = 'active' | 'paused' | 'closed' | 'expired';
 export type PriceType = 'fixed' | 'negotiable' | 'at_contact';

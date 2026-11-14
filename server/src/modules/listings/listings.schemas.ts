@@ -20,11 +20,16 @@ const sectionOtherField = z.preprocess((value) => {
 
 export const serviceKindSchema = z.enum([
   'transport',
+  'daily_labor',
   'packing',
   'consulting',
   'maintenance',
   'harvesting',
   'irrigation',
+  'spraying',
+  'pruning',
+  'sowing',
+  'equipment_rental',
   'other',
 ]);
 
@@ -34,6 +39,7 @@ export const serviceMetaSchema = z.object({
   loadCapacity: z.string().trim().max(60).optional(),
   serviceAreas: z.string().trim().max(200).optional(),
   deliveryTime: z.string().trim().max(60).optional(),
+  crewSize: z.string().trim().max(30).optional(),
 });
 
 /** Multipart sends serviceMeta as a JSON string; JSON requests may send an object. */

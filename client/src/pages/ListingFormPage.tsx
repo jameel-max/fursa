@@ -2,14 +2,32 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   ArrowRight,
+  Car,
+  CarFront,
+  ClipboardList,
+  Combine,
+  Container,
+  Droplets,
+  Forklift,
+  HardHat,
   ImagePlus,
   Leaf,
   Loader2,
+  PackageCheck,
+  Refrigerator,
   Save,
+  Scissors,
+  Shapes,
   ShoppingBasket,
+  Shovel,
+  SprayCan,
+  Tractor,
+  Trailer,
   Trash2,
   Truck,
   UploadCloud,
+  Wrench,
+  type LucideIcon,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { compressImage } from '../lib/image';
@@ -35,14 +53,30 @@ const priceTypes: Array<{ value: PriceType; label: string; hint: string }> = [
   { value: 'at_contact', label: 'السعر عند التواصل', hint: 'اترك السعر فارغاً وحدده لاحقاً' },
 ];
 
-const serviceKinds: Array<{ value: ServiceKind; label: string }> = [
-  { value: 'transport', label: 'نقل' },
-  { value: 'packing', label: 'تعبئة وتغليف' },
-  { value: 'consulting', label: 'استشارات زراعية' },
-  { value: 'maintenance', label: 'صيانة معدات' },
-  { value: 'harvesting', label: 'حصاد' },
-  { value: 'irrigation', label: 'أنظمة ري' },
-  { value: 'other', label: 'أخرى' },
+const serviceKinds: Array<{ value: ServiceKind; label: string; icon: LucideIcon; hint: string }> = [
+  { value: 'transport', label: 'نقل', icon: Truck, hint: 'نقل محاصيل ومستلزمات بمختلف أنواع العربات' },
+  { value: 'daily_labor', label: 'عمال مياومة', icon: HardHat, hint: 'عمالة يومية للحصاد والزرع والخدمات الميدانية' },
+  { value: 'packing', label: 'تعبئة وتغليف', icon: PackageCheck, hint: 'تعبئة وتغليف وتجهيز المنتجات' },
+  { value: 'consulting', label: 'استشارات زراعية', icon: ClipboardList, hint: 'إرشاد فني وتخطيط زراعي' },
+  { value: 'maintenance', label: 'صيانة معدات', icon: Wrench, hint: 'صيانة وإصلاح المعدات الزراعية' },
+  { value: 'harvesting', label: 'حصاد', icon: Combine, hint: 'حصاد المحاصيل بأيدي عاملة أو آليات' },
+  { value: 'irrigation', label: 'أنظمة ري', icon: Droplets, hint: 'تركيب وصيانة أنظمة الري' },
+  { value: 'spraying', label: 'رش ومكافحة آفات', icon: SprayCan, hint: 'رش المبيدات ومكافحة الآفات والأمراض' },
+  { value: 'pruning', label: 'تقليم', icon: Scissors, hint: 'تقليم الأشجار والعناية بالنباتات' },
+  { value: 'sowing', label: 'زراعة وتسوية', icon: Shovel, hint: 'تسوية وزراعة المحاصيل' },
+  { value: 'equipment_rental', label: 'تأجير معدات', icon: Tractor, hint: 'إيجار جرارات ومعدات زراعية' },
+  { value: 'other', label: 'أخرى', icon: Shapes, hint: 'خدمة غير مدرجة — اذكرها في الوصف' },
+];
+
+const vehicleTypes: Array<{ value: string; label: string; icon: LucideIcon }> = [
+  { value: 'pickup', label: 'بيك أب', icon: CarFront },
+  { value: 'datsun', label: 'داتسون', icon: Car },
+  { value: 'dyna', label: 'ديانا كبيرة', icon: Truck },
+  { value: 'reefer', label: 'براد', icon: Refrigerator },
+  { value: 'dump', label: 'قلابية', icon: Container },
+  { value: 'trailer', label: 'مقطورة / تريلا', icon: Trailer },
+  { value: 'crane', label: 'ونش', icon: Forklift },
+  { value: 'other', label: 'نوع آخر', icon: Shapes },
 ];
 
 export function ListingFormPage() {
@@ -73,10 +107,12 @@ export function ListingFormPage() {
   const [area, setArea] = useState('');
   const [description, setDescription] = useState('');
   const [serviceKind, setServiceKind] = useState<ServiceKind | ''>('');
+  const [vehiclePick, setVehiclePick] = useState('');
   const [vehicleType, setVehicleType] = useState('');
   const [loadCapacity, setLoadCapacity] = useState('');
   const [serviceAreas, setServiceAreas] = useState('');
   const [deliveryTime, setDeliveryTime] = useState('');
+  const [crewSize, setCrewSize] = useState('');
 
   const [existingImages, setExistingImages] = useState<ListingImage[]>([]);
   const [newFiles, setNewFiles] = useState<SelectedFile[]>([]);
@@ -119,10 +155,18 @@ export function ListingFormPage() {
         const meta = data.serviceMeta;
         if (meta) {
           setServiceKind(meta.serviceKind ?? '');
-          setVehicleType(meta.vehicleType ?? '');
           setLoadCapacity(meta.loadCapacity ?? '');
           setServiceAreas(meta.serviceAreas ?? '');
           setDeliveryTime(meta.deliveryTime ?? '');
+          setCrewSize(meta.crewSize ?? '');
+          const savedVehicle = meta.vehicleType ?? '';
+          const matchedVehicle = vehicleTypes.find((v) => v.label === savedVehicle);
+          if (matchedVehicle) {
+            setVehiclePick(matchedVehicle.value);
+          } else if (savedVehicle) {
+            setVehiclePick('other');
+            setVehicleType(savedVehicle);
+          }
         }
         if (data.section) setSection(data.section as ListingSection);
         if (data.sectionOther) setSectionOther(data.sectionOther);
@@ -236,10 +280,15 @@ export function ListingFormPage() {
     if (listingType !== 'offer') {
       const meta: Record<string, string> = {};
       if (serviceKind) meta.serviceKind = serviceKind;
-      if (vehicleType.trim()) meta.vehicleType = vehicleType.trim();
+      if (serviceKind === 'transport') {
+        const resolvedVehicle =
+          vehiclePick === 'other' ? vehicleType.trim() : vehicleTypes.find((v) => v.value === vehiclePick)?.label ?? '';
+        if (resolvedVehicle) meta.vehicleType = resolvedVehicle;
+      }
       if (loadCapacity.trim()) meta.loadCapacity = loadCapacity.trim();
       if (serviceAreas.trim()) meta.serviceAreas = serviceAreas.trim();
       if (deliveryTime.trim()) meta.deliveryTime = deliveryTime.trim();
+      if (crewSize.trim()) meta.crewSize = crewSize.trim();
       if (Object.keys(meta).length > 0) formData.append('serviceMeta', JSON.stringify(meta));
     }
     for (const item of newFiles) formData.append('images', item.file);
@@ -531,30 +580,59 @@ export function ListingFormPage() {
           <div className="field">
             <span className="label">{listingType === 'service' ? 'نوع الخدمة' : 'نوع الطلب'} (اختياري)</span>
             <div className="chip-row">
-              {serviceKinds.map((kind) => (
-                <button
-                  key={kind.value}
-                  type="button"
-                  className={serviceKind === kind.value ? 'chip active' : 'chip'}
-                  aria-pressed={serviceKind === kind.value}
-                  onClick={() => setServiceKind(serviceKind === kind.value ? '' : kind.value)}
-                >
-                  {kind.label}
-                </button>
-              ))}
+              {serviceKinds.map((kind) => {
+                const Icon = kind.icon;
+                return (
+                  <button
+                    key={kind.value}
+                    type="button"
+                    className={serviceKind === kind.value ? 'chip active' : 'chip'}
+                    aria-pressed={serviceKind === kind.value}
+                    onClick={() => setServiceKind(serviceKind === kind.value ? '' : kind.value)}
+                    title={kind.hint}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <Icon size={15} aria-hidden="true" />
+                    {kind.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {serviceKind === 'transport' ? (
             <div className="stack">
-              <div className="form-grid">
+              <div className="field">
+                <span className="label">{listingType === 'service' ? 'نوع المركبة' : 'نوع المركبة المطلوبة'}</span>
+                <div className="chip-row">
+                  {vehicleTypes.map((vehicle) => {
+                    const Icon = vehicle.icon;
+                    return (
+                      <button
+                        key={vehicle.value}
+                        type="button"
+                        className={vehiclePick === vehicle.value ? 'chip active' : 'chip'}
+                        aria-pressed={vehiclePick === vehicle.value}
+                        onClick={() => setVehiclePick(vehicle.value)}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                      >
+                        <Icon size={15} aria-hidden="true" />
+                        {vehicle.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {vehiclePick === 'other' ? (
                 <Input
-                  label={listingType === 'service' ? 'نوع المركبة' : 'نوع المركبة المطلوبة'}
+                  label="اكتب نوع المركبة"
                   value={vehicleType}
                   onChange={(event) => setVehicleType(event.target.value)}
                   maxLength={60}
-                  placeholder="مثال: شاحنة مبردة / فان / تريلا"
+                  placeholder="مثال: فان / تريلا / شاحنة صغيرة"
                 />
+              ) : null}
+              <div className="form-grid">
                 <Input
                   label={listingType === 'service' ? 'الحمولة المتاحة' : 'الحمولة المطلوبة'}
                   value={loadCapacity}
@@ -579,6 +657,25 @@ export function ListingFormPage() {
                   placeholder="مثال: خلال 24 ساعة"
                 />
               </div>
+            </div>
+          ) : null}
+
+          {serviceKind === 'daily_labor' ? (
+            <div className="form-grid">
+              <Input
+                label={listingType === 'service' ? 'عدد العمال المتاحين' : 'عدد العمال المطلوبين'}
+                value={crewSize}
+                onChange={(event) => setCrewSize(event.target.value)}
+                maxLength={30}
+                placeholder="مثال: 5 عمال / crew of 10"
+              />
+              <Input
+                label="مناطق الخدمة"
+                value={serviceAreas}
+                onChange={(event) => setServiceAreas(event.target.value)}
+                maxLength={200}
+                placeholder="مثال: المزرعة – المنطقة"
+              />
             </div>
           ) : null}
         </Card>

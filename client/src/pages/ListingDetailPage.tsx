@@ -352,6 +352,12 @@ export function ListingDetailPage() {
                         <span className="v">{listing.serviceMeta.loadCapacity}</span>
                       </li>
                     ) : null}
+                    {listing.serviceMeta.crewSize ? (
+                      <li>
+                        <span className="k">عدد العمال</span>
+                        <span className="v">{listing.serviceMeta.crewSize}</span>
+                      </li>
+                    ) : null}
                   </ul>
                   <ul className="spec-list">
                     {listing.serviceMeta.serviceAreas ? (
