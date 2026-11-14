@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { AdBanner } from '../types';
 
-const ROTATE_MS = 7000;
+const ROTATE_MS = 10000;
 
 function AdSlide({ ad }: { ad: AdBanner }) {
   const inner = (
