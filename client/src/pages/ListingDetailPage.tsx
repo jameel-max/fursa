@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useCatalog } from '../lib/catalog';
-import { formatDate, formatPrice, formatQuantity, listingStatusLabel, listingTypeLabel, priceTypeLabel, timeAgo, whatsappLink } from '../lib/format';
+import { formatDate, formatPrice, formatQuantity, listingStatusLabel, listingTypeLabel, priceTypeLabel, serviceKindLabel, timeAgo, whatsappLink } from '../lib/format';
 import type { Listing, ListingList } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useFavorites } from '../context/FavoritesContext';
@@ -310,6 +310,49 @@ export function ListingDetailPage() {
                 </li>
               </ul>
             </div>
+
+            {listing.serviceMeta ? (
+              <>
+                <hr className="divider" />
+                <h2 style={{ fontSize: '1.1rem' }}>{listing.listingType === 'service' ? 'تفاصيل الخدمة' : 'تفاصيل الطلب'}</h2>
+                <div className="grid grid-2 mt-2">
+                  <ul className="spec-list">
+                    {listing.serviceMeta.serviceKind ? (
+                      <li>
+                        <span className="k">نوع {listing.listingType === 'service' ? 'الخدمة' : 'الطلب'}</span>
+                        <span className="v">{serviceKindLabel[listing.serviceMeta.serviceKind] ?? listing.serviceMeta.serviceKind}</span>
+                      </li>
+                    ) : null}
+                    {listing.serviceMeta.vehicleType ? (
+                      <li>
+                        <span className="k">المركبة</span>
+                        <span className="v">{listing.serviceMeta.vehicleType}</span>
+                      </li>
+                    ) : null}
+                    {listing.serviceMeta.loadCapacity ? (
+                      <li>
+                        <span className="k">الحمولة</span>
+                        <span className="v">{listing.serviceMeta.loadCapacity}</span>
+                      </li>
+                    ) : null}
+                  </ul>
+                  <ul className="spec-list">
+                    {listing.serviceMeta.serviceAreas ? (
+                      <li>
+                        <span className="k">مناطق الخدمة</span>
+                        <span className="v">{listing.serviceMeta.serviceAreas}</span>
+                      </li>
+                    ) : null}
+                    {listing.serviceMeta.deliveryTime ? (
+                      <li>
+                        <span className="k">مدة التوصيل</span>
+                        <span className="v">{listing.serviceMeta.deliveryTime}</span>
+                      </li>
+                    ) : null}
+                  </ul>
+                </div>
+              </>
+            ) : null}
           </Card>
 
           {listing.listingType === 'request' ? (

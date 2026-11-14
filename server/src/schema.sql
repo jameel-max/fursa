@@ -107,6 +107,7 @@ CREATE TABLE IF NOT EXISTS listings (
   status TEXT NOT NULL DEFAULT 'active',
   featured INTEGER NOT NULL DEFAULT 0,
   expires_at INTEGER,
+  service_meta TEXT,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
@@ -260,7 +261,7 @@ CREATE TABLE IF NOT EXISTS reviews (
   comment TEXT,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
-  UNIQUE(listing_id, reviewer_id)
+  UNIQUE(reviewee_id, reviewer_id)
 );
 
 

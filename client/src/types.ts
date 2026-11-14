@@ -1,6 +1,16 @@
 export type AccountStatus = 'pending' | 'active' | 'suspended' | 'banned';
 export type UserRole = 'user' | 'admin';
 export type ListingType = 'offer' | 'request' | 'service';
+
+export type ServiceKind = 'transport' | 'packing' | 'consulting' | 'maintenance' | 'harvesting' | 'irrigation' | 'other';
+
+export interface ServiceMeta {
+  serviceKind?: ServiceKind;
+  vehicleType?: string;
+  loadCapacity?: string;
+  serviceAreas?: string;
+  deliveryTime?: string;
+}
 export type ListingStatus = 'active' | 'paused' | 'closed' | 'expired';
 export type PriceType = 'fixed' | 'negotiable' | 'at_contact';
 export type OfferStatus = 'new' | 'negotiation' | 'accepted' | 'rejected' | 'cancelled';
@@ -87,6 +97,7 @@ export interface Listing {
   owner: ListingOwner | null;
   offerCount: number;
   myReview?: Review | null;
+  serviceMeta?: ServiceMeta | null;
 }
 
 export interface Review {

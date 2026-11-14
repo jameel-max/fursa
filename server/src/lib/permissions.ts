@@ -16,6 +16,7 @@ export const BASE_PERMISSIONS = [
   'messages.use',
   'favorites.use',
   'reviews.create',
+  'offers.create',
   'profile.edit',
   'subscriptions.manage',
 ] as const;

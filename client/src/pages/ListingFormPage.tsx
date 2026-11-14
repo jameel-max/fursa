@@ -15,8 +15,7 @@ import { api } from '../lib/api';
 import { compressImage } from '../lib/image';
 import { flattenCategories, useCatalog } from '../lib/catalog';
 import { useToast } from '../context/ToastContext';
-import { useAuth } from '../context/AuthContext';
-import type { Listing, ListingImage, ListingType, PriceType } from '../types';
+import type { Listing, ListingImage, ListingType, PriceType, ServiceKind } from '../types';
 import { getErrorMessage, getFieldErrors } from '../lib/validation';
 import { Button, buttonClass } from '../components/ui/Button';
 import { Alert, LoadingBlock } from '../components/ui/Feedback';
@@ -35,6 +34,16 @@ const priceTypes: Array<{ value: PriceType; label: string; hint: string }> = [
   { value: 'at_contact', label: 'السعر عند التواصل', hint: 'اترك السعر فارغاً وحدده لاحقاً' },
 ];
 
+const serviceKinds: Array<{ value: ServiceKind; label: string }> = [
+  { value: 'transport', label: 'نقل' },
+  { value: 'packing', label: 'تعبئة وتغليف' },
+  { value: 'consulting', label: 'استشارات زراعية' },
+  { value: 'maintenance', label: 'صيانة معدات' },
+  { value: 'harvesting', label: 'حصاد' },
+  { value: 'irrigation', label: 'أنظمة ري' },
+  { value: 'other', label: 'أخرى' },
+];
+
 export function ListingFormPage() {
   const { id } = useParams();
   const listingId = id ? Number(id) : null;
@@ -42,20 +51,6 @@ export function ListingFormPage() {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { categories, units, governorates, loading: catalogLoading, error: catalogError } = useCatalog();
-  const { user } = useAuth();
-
-  const TYPE_PERMISSIONS: Record<ListingType, string> = {
-    offer: 'listings.create_offer',
-    request: 'listings.create_request',
-    service: 'listings.create_service',
-  };
-  const allowedTypes = useMemo<ListingType[]>(() => {
-    const perms = user?.permissions ?? [];
-    const all = perms.includes('*');
-    return (['offer', 'request', 'service'] as ListingType[]).filter(
-      (type) => all || perms.includes(TYPE_PERMISSIONS[type]),
-    );
-  }, [user?.permissions]);
 
   const [searchParams] = useSearchParams();
   const initialType = searchParams.get('type');
@@ -71,6 +66,11 @@ export function ListingFormPage() {
   const [governorateId, setGovernorateId] = useState('');
   const [area, setArea] = useState('');
   const [description, setDescription] = useState('');
+  const [serviceKind, setServiceKind] = useState<ServiceKind | ''>('');
+  const [vehicleType, setVehicleType] = useState('');
+  const [loadCapacity, setLoadCapacity] = useState('');
+  const [serviceAreas, setServiceAreas] = useState('');
+  const [deliveryTime, setDeliveryTime] = useState('');
 
   const [existingImages, setExistingImages] = useState<ListingImage[]>([]);
   const [newFiles, setNewFiles] = useState<SelectedFile[]>([]);
@@ -81,12 +81,6 @@ export function ListingFormPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    if (!isEdit && allowedTypes.length > 0 && !allowedTypes.includes(listingType)) {
-      setListingType(allowedTypes[0]);
-    }
-  }, [isEdit, allowedTypes, listingType]);
 
   const urlsRef = useRef<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -117,6 +111,14 @@ export function ListingFormPage() {
         setArea(data.area ?? '');
         setDescription(data.description ?? '');
         setExistingImages(data.images);
+        const meta = data.serviceMeta;
+        if (meta) {
+          setServiceKind(meta.serviceKind ?? '');
+          setVehicleType(meta.vehicleType ?? '');
+          setLoadCapacity(meta.loadCapacity ?? '');
+          setServiceAreas(meta.serviceAreas ?? '');
+          setDeliveryTime(meta.deliveryTime ?? '');
+        }
       } catch (err) {
         if (active) setError(getErrorMessage(err, 'تعذّر تحميل بيانات الإعلان.'));
       } finally {
@@ -207,8 +209,10 @@ export function ListingFormPage() {
     const errors: Record<string, string> = {};
     if (title.trim().length < 3) errors.title = 'عنوان الإعلان يجب أن يكون 3 أحرف على الأقل.';
     if (!categoryId) errors.categoryId = 'اختر تصنيف الإعلان.';
-    if (!quantity || Number(quantity) < 1) errors.quantity = 'أدخل كمية صحيحة أكبر من صفر.';
-    if (!unitId) errors.unitId = 'اختر وحدة القياس.';
+    if (listingType !== 'service') {
+      if (!quantity || Number(quantity) < 1) errors.quantity = 'أدخل كمية صحيحة أكبر من صفر.';
+      if (!unitId) errors.unitId = 'اختر وحدة القياس.';
+    }
     if (!governorateId) errors.governorateId = 'اختر المحافظة.';
     if (priceType !== 'at_contact' && listingType !== 'request' && price.trim() === '') {
       errors.price = 'السعر مطلوب، أو اختر «السعر عند التواصل».';
@@ -227,14 +231,23 @@ export function ListingFormPage() {
     const formData = new FormData();
     formData.append('title', title.trim());
     formData.append('categoryId', categoryId);
-    formData.append('quantity', quantity);
-    formData.append('unitId', unitId);
+    if (quantity.trim()) formData.append('quantity', quantity);
+    if (unitId) formData.append('unitId', unitId);
     formData.append('priceType', priceType);
     formData.append('governorateId', governorateId);
     if (area.trim()) formData.append('area', area.trim());
     if (description.trim()) formData.append('description', description.trim());
     if (priceType !== 'at_contact' && price.trim() !== '') formData.append('price', price);
     if (!isEdit) formData.append('listingType', listingType);
+    if (listingType !== 'offer') {
+      const meta: Record<string, string> = {};
+      if (serviceKind) meta.serviceKind = serviceKind;
+      if (vehicleType.trim()) meta.vehicleType = vehicleType.trim();
+      if (loadCapacity.trim()) meta.loadCapacity = loadCapacity.trim();
+      if (serviceAreas.trim()) meta.serviceAreas = serviceAreas.trim();
+      if (deliveryTime.trim()) meta.deliveryTime = deliveryTime.trim();
+      if (Object.keys(meta).length > 0) formData.append('serviceMeta', JSON.stringify(meta));
+    }
     for (const item of newFiles) formData.append('images', item.file);
 
     try {
@@ -284,14 +297,7 @@ export function ListingFormPage() {
       <form className="stack" onSubmit={onSubmit} noValidate>
         <Card pad className="stack">
           <h2 style={{ fontSize: '1.1rem' }}>نوع الإعلان</h2>
-          {!isEdit && allowedTypes.length === 0 ? (
-            <Alert kind="warning">
-              تخصصاتك الحالية لا تتيح نشر إعلانات. أضف تخصصاً تجارياً من{' '}
-              <Link to="/dashboard/profile">الملف الشخصي</Link> أولاً.
-            </Alert>
-          ) : (
           <div className="grid grid-3">
-            {allowedTypes.includes('offer') || isEdit ? (
             <button
               type="button"
               className={listingType === 'offer' ? 'type-choice active' : 'type-choice'}
@@ -307,8 +313,6 @@ export function ListingFormPage() {
                 <small>لديّ محصول أو منتج أو خدمة أريد بيعها.</small>
               </span>
             </button>
-            ) : null}
-            {allowedTypes.includes('request') || isEdit ? (
             <button
               type="button"
               className={listingType === 'request' ? 'type-choice active' : 'type-choice'}
@@ -324,8 +328,6 @@ export function ListingFormPage() {
                 <small>أبحث عن كمية محددة وأريد استقبال عروض.</small>
               </span>
             </button>
-            ) : null}
-            {allowedTypes.includes('service') || isEdit ? (
             <button
               type="button"
               className={listingType === 'service' ? 'type-choice active' : 'type-choice'}
@@ -341,9 +343,7 @@ export function ListingFormPage() {
                 <small>أقدّم خدمة زراعية أو نقل أو تعبئة وأريد تسويقها.</small>
               </span>
             </button>
-            ) : null}
           </div>
-          )}
           {isEdit ? <p className="small muted">لا يمكن تغيير نوع الإعلان بعد النشر.</p> : null}
         </Card>
 
@@ -377,6 +377,7 @@ export function ListingFormPage() {
               placeholder="اختر التصنيف"
               error={fieldErrors.categoryId}
             />
+            {listingType !== 'service' ? (
             <Select
               label="وحدة القياس"
               required
@@ -386,9 +387,11 @@ export function ListingFormPage() {
               placeholder="اختر الوحدة"
               error={fieldErrors.unitId}
             />
+            ) : null}
           </div>
 
           <div className="form-grid">
+            {listingType !== 'service' ? (
             <Input
               label="الكمية"
               type="number"
@@ -400,6 +403,7 @@ export function ListingFormPage() {
               error={fieldErrors.quantity}
               placeholder="مثال: 500"
             />
+            ) : null}
             <Select
               label="المحافظة"
               required
@@ -465,6 +469,66 @@ export function ListingFormPage() {
             hint={`${description.length}/3000`}
           />
         </Card>
+
+        {listingType !== 'offer' ? (
+        <Card pad className="stack">
+          <h2 style={{ fontSize: '1.1rem' }}>{listingType === 'service' ? 'تفاصيل الخدمة' : 'تفاصيل الطلب'}</h2>
+
+          <div className="field">
+            <span className="label">{listingType === 'service' ? 'نوع الخدمة' : 'نوع الطلب'} (اختياري)</span>
+            <div className="chip-row">
+              {serviceKinds.map((kind) => (
+                <button
+                  key={kind.value}
+                  type="button"
+                  className={serviceKind === kind.value ? 'chip active' : 'chip'}
+                  aria-pressed={serviceKind === kind.value}
+                  onClick={() => setServiceKind(serviceKind === kind.value ? '' : kind.value)}
+                >
+                  {kind.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {serviceKind === 'transport' ? (
+            <div className="stack">
+              <div className="form-grid">
+                <Input
+                  label={listingType === 'service' ? 'نوع المركبة' : 'نوع المركبة المطلوبة'}
+                  value={vehicleType}
+                  onChange={(event) => setVehicleType(event.target.value)}
+                  maxLength={60}
+                  placeholder="مثال: شاحنة مبردة / فان / تريلا"
+                />
+                <Input
+                  label={listingType === 'service' ? 'الحمولة المتاحة' : 'الحمولة المطلوبة'}
+                  value={loadCapacity}
+                  onChange={(event) => setLoadCapacity(event.target.value)}
+                  maxLength={60}
+                  placeholder="مثال: 10 أطنان"
+                />
+              </div>
+              <div className="form-grid">
+                <Input
+                  label="مناطق الخدمة"
+                  value={serviceAreas}
+                  onChange={(event) => setServiceAreas(event.target.value)}
+                  maxLength={200}
+                  placeholder="مثال: عمّان – إربد – المفرق"
+                />
+                <Input
+                  label="مدة التوصيل المتوقعة"
+                  value={deliveryTime}
+                  onChange={(event) => setDeliveryTime(event.target.value)}
+                  maxLength={60}
+                  placeholder="مثال: خلال 24 ساعة"
+                />
+              </div>
+            </div>
+          ) : null}
+        </Card>
+        ) : null}
 
         <Card pad className="stack">
           <div className="between">

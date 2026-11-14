@@ -67,6 +67,16 @@ export const listingTypeLabel: Record<ListingType, string> = {
   service: 'خدمة',
 };
 
+export const serviceKindLabel: Record<string, string> = {
+  transport: 'نقل',
+  packing: 'تعبئة وتغليف',
+  consulting: 'استشارات زراعية',
+  maintenance: 'صيانة معدات',
+  harvesting: 'حصاد',
+  irrigation: 'أنظمة ري',
+  other: 'أخرى',
+};
+
 export const listingStatusLabel: Record<ListingStatus, string> = {
   active: 'نشط',
   paused: 'موقوف مؤقتاً',

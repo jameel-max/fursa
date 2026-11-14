@@ -147,6 +147,7 @@ export function ReviewsCard({ listing, onUpdated }: { listing: Listing; onUpdate
               placeholder="كيف كانت تجربتك مع هذا البائع؟"
             />
           </div>
+          <p className="small muted mt-2">تقييمك يخص البائع ويظهر على جميع منتجاته — يمكنك تعديله من أي إعلان له.</p>
           <div className="mt-2">
             <Button type="submit" loading={submitting}>
               {listing.myReview ? 'تحديث التقييم' : 'إرسال التقييم'}

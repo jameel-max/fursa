@@ -32,6 +32,24 @@ export async function seed() {
     // index already exists
   }
 
+  try {
+    await execute('ALTER TABLE listings ADD COLUMN service_meta TEXT');
+  } catch {
+    // column already exists
+  }
+
+  // Reviews are per seller (reviewee), not per listing — dedupe then enforce uniqueness.
+  try {
+    await execute(
+      `DELETE FROM reviews WHERE id NOT IN (
+         SELECT MAX(id) FROM reviews GROUP BY reviewee_id, reviewer_id
+       )`,
+    );
+    await execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_reviews_reviewee_reviewer ON reviews(reviewee_id, reviewer_id)');
+  } catch {
+    // dedupe/index may fail on engines without the needed syntax — non-fatal
+  }
+
   const insertSpecialty = async (name: string) => {
     const result = await execute('INSERT INTO specialties (name, is_active) VALUES (?, 1) ON CONFLICT DO NOTHING', [name]);
     return result.lastInsertRowid;
@@ -113,7 +131,8 @@ export async function seed() {
   }
   for (const perm of PERMISSIONS) {
     await execute(
-      'INSERT INTO permissions (code, label_ar, is_base) VALUES (?, ?, ?) ON CONFLICT(code) DO NOTHING',
+      `INSERT INTO permissions (code, label_ar, is_base) VALUES (?, ?, ?)
+       ON CONFLICT(code) DO UPDATE SET label_ar = excluded.label_ar, is_base = excluded.is_base`,
       [perm.code, perm.labelAr, BASE_PERMISSIONS.includes(perm.code as (typeof BASE_PERMISSIONS)[number]) ? 1 : 0],
     );
   }

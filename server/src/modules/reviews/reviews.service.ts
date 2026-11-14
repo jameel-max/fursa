@@ -54,10 +54,13 @@ export async function createReview(reviewerId: number, input: unknown) {
   const now = Math.floor(Date.now() / 1000);
   const comment = data.comment?.trim() ? data.comment.trim() : null;
 
+  // One review per reviewer per seller — rating a product rates the seller
+  // across all of their listings. listing_id keeps the latest context.
   await execute(
     `INSERT INTO reviews (listing_id, reviewer_id, reviewee_id, rating, comment, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(listing_id, reviewer_id) DO UPDATE SET
+     ON CONFLICT(reviewee_id, reviewer_id) DO UPDATE SET
+       listing_id = excluded.listing_id,
        rating = excluded.rating,
        comment = excluded.comment,
        updated_at = excluded.updated_at`,
@@ -73,12 +76,14 @@ export async function createReview(reviewerId: number, input: unknown) {
     comment: string | null;
     created_at: number;
     updated_at: number;
-  }>('SELECT * FROM reviews WHERE listing_id = ? AND reviewer_id = ?', [listing.id, reviewerId]);
+  }>('SELECT * FROM reviews WHERE reviewee_id = ? AND reviewer_id = ?', [listing.user_id, reviewerId]);
 
   return mapReview(review!);
 }
 
 export async function getMyReviewForListing(userId: number, listingId: number): Promise<ReviewRecord | null> {
+  const listing = await queryOne<{ user_id: number }>('SELECT user_id FROM listings WHERE id = ?', [listingId]);
+  if (!listing) return null;
   const row = await queryOne<{
     id: number;
     listing_id: number;
@@ -88,7 +93,7 @@ export async function getMyReviewForListing(userId: number, listingId: number): 
     comment: string | null;
     created_at: number;
     updated_at: number;
-  }>('SELECT * FROM reviews WHERE listing_id = ? AND reviewer_id = ?', [listingId, userId]);
+  }>('SELECT * FROM reviews WHERE reviewee_id = ? AND reviewer_id = ?', [listing.user_id, userId]);
   return row ? mapReview(row) : null;
 }
 

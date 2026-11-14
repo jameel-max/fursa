@@ -5,7 +5,6 @@ import { z } from 'zod';
 import { createListingSchema, updateListingSchema, listingStatusSchema, offerSchema, offerStatusSchema } from './listings.schemas';
 import { canPublish, getEffectiveSubscription } from '../subscriptions/subscriptions.service';
 import { getMyReviewForListing, getRatingSummary, type ReviewRecord } from '../reviews/reviews.service';
-import { assertUserPermission, LISTING_TYPE_PERMISSION } from '../../lib/permissions';
 
 export interface ListingFilters {
   listingType?: 'offer' | 'request' | 'service';
@@ -66,6 +65,26 @@ export interface ListingDetail {
   owner: ListingOwner | null;
   offerCount: number;
   myReview: ReviewRecord | null;
+  serviceMeta: ServiceMeta | null;
+}
+
+export interface ServiceMeta {
+  serviceKind?: string;
+  vehicleType?: string;
+  loadCapacity?: string;
+  serviceAreas?: string;
+  deliveryTime?: string;
+}
+
+function parseServiceMeta(value: unknown): ServiceMeta | null {
+  if (!value) return null;
+  if (typeof value === 'object') return value as ServiceMeta;
+  try {
+    const parsed = JSON.parse(String(value));
+    return parsed && typeof parsed === 'object' ? (parsed as ServiceMeta) : null;
+  } catch {
+    return null;
+  }
 }
 
 function toUnixSeconds(value: unknown): number {
@@ -196,10 +215,11 @@ export async function listListings(filters: ListingFilters) {
     status: string;
     featured: number;
     expires_at: number;
+    service_meta: string | null;
     created_at: number;
     updated_at: number;
   }>(
-    `SELECT l.id, l.user_id, l.listing_type, l.title, l.category_id, l.description, l.quantity, l.unit_id, l.price, l.price_type, l.governorate_id, l.area, l.status, l.featured, l.expires_at, l.created_at, l.updated_at
+    `SELECT l.id, l.user_id, l.listing_type, l.title, l.category_id, l.description, l.quantity, l.unit_id, l.price, l.price_type, l.governorate_id, l.area, l.status, l.featured, l.expires_at, l.service_meta, l.created_at, l.updated_at
      FROM listings l
      JOIN users u ON u.id = l.user_id
      LEFT JOIN (
@@ -240,6 +260,7 @@ export async function listListings(filters: ListingFilters) {
       owner,
       offerCount,
       myReview: null,
+      serviceMeta: parseServiceMeta(row.service_meta),
     });
   }
 
@@ -263,6 +284,7 @@ export async function getListingById(id: number, viewerId: number | undefined) {
     status: string;
     featured: number;
     expires_at: number;
+    service_meta: string | null;
     created_at: number;
     updated_at: number;
   }>('SELECT * FROM listings WHERE id = ?', [id]);
@@ -295,6 +317,7 @@ export async function getListingById(id: number, viewerId: number | undefined) {
     owner,
     offerCount,
     myReview,
+    serviceMeta: parseServiceMeta(listing.service_meta),
   };
   return detail;
 }
@@ -322,6 +345,7 @@ export async function listMyListings(userId: number, status: string) {
     status: string;
     featured: number;
     expires_at: number;
+    service_meta: string | null;
     created_at: number;
     updated_at: number;
   }>('SELECT * FROM listings WHERE ' + conditions.join(' AND ') + ' ORDER BY updated_at DESC', params);
@@ -352,6 +376,7 @@ export async function listMyListings(userId: number, status: string) {
       owner,
       offerCount,
       myReview: null,
+      serviceMeta: parseServiceMeta(row.service_meta),
     });
   }
   return items;
@@ -359,8 +384,6 @@ export async function listMyListings(userId: number, status: string) {
 
 export async function createListing(userId: number, input: unknown, imageUrls: string[]) {
   const data = validate(createListingSchema, input);
-  const requiredPerm = LISTING_TYPE_PERMISSION[data.listingType];
-  if (requiredPerm) await assertUserPermission(userId, requiredPerm);
   const nowSec = Math.floor(Date.now() / 1000);
   const { allowed, subscription, usage } = await canPublish(userId, nowSec);
   if (!allowed) {
@@ -376,22 +399,23 @@ export async function createListing(userId: number, input: unknown, imageUrls: s
   const listingId = await withTransaction(async () => {
     const expiresAt = data.expiresAt ?? nowSec + expiryDays * 24 * 3600;
     const newListingId = await insertAndGetId(
-      `INSERT INTO listings (user_id, listing_type, title, category_id, description, quantity, unit_id, price, price_type, governorate_id, area, status, expires_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO listings (user_id, listing_type, title, category_id, description, quantity, unit_id, price, price_type, governorate_id, area, status, expires_at, service_meta, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userId,
         data.listingType,
         data.title.trim(),
         data.categoryId,
         data.description ?? null,
-        data.quantity,
-        data.unitId,
+        data.quantity ?? 0,
+        data.unitId ?? null,
         data.price ?? null,
         data.priceType,
         data.governorateId,
         data.area ?? null,
         'active',
         expiresAt,
+        data.serviceMeta ? JSON.stringify(data.serviceMeta) : null,
         nowSec,
         nowSec,
       ],
@@ -471,6 +495,13 @@ export async function updateListing(userId: number, listingId: number, input: un
   }
   if (data.expiresAt !== undefined) {
     await execute('UPDATE listings SET expires_at = ?, updated_at = ? WHERE id = ?', [data.expiresAt, Math.floor(Date.now() / 1000), listingId]);
+  }
+  if (data.serviceMeta !== undefined) {
+    await execute('UPDATE listings SET service_meta = ?, updated_at = ? WHERE id = ?', [
+      data.serviceMeta ? JSON.stringify(data.serviceMeta) : null,
+      Math.floor(Date.now() / 1000),
+      listingId,
+    ]);
   }
   return { success: true };
 }

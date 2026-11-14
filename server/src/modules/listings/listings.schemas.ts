@@ -2,6 +2,38 @@ import { z } from 'zod';
 
 export const listingTypeSchema = z.enum(['offer', 'request', 'service']);
 
+export const serviceKindSchema = z.enum([
+  'transport',
+  'packing',
+  'consulting',
+  'maintenance',
+  'harvesting',
+  'irrigation',
+  'other',
+]);
+
+export const serviceMetaSchema = z.object({
+  serviceKind: serviceKindSchema.optional(),
+  vehicleType: z.string().trim().max(60).optional(),
+  loadCapacity: z.string().trim().max(60).optional(),
+  serviceAreas: z.string().trim().max(200).optional(),
+  deliveryTime: z.string().trim().max(60).optional(),
+});
+
+/** Multipart sends serviceMeta as a JSON string; JSON requests may send an object. */
+const serviceMetaField = z.preprocess((value) => {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return undefined;
+    }
+  }
+  return value;
+}, serviceMetaSchema.optional());
+
 export const priceTypeSchema = z.enum(['fixed', 'negotiable', 'at_contact']);
 
 /**
@@ -56,13 +88,24 @@ export const createListingSchema = z
     title: z.string().trim().min(3, 'Title must be at least 3 characters').max(120, 'Title is too long'),
     categoryId: categoryIdField,
     description: z.string().max(3000).optional(),
-    quantity: quantityField,
-    unitId: unitIdField,
+    quantity: quantityField.optional(),
+    unitId: unitIdField.optional(),
     price: priceField.optional(),
     priceType: priceTypeSchema.default('fixed'),
     governorateId: governorateIdField,
     area: z.string().max(120).optional(),
     expiresAt: expiresAtField.optional(),
+    serviceMeta: serviceMetaField,
+  })
+  .superRefine((value, ctx) => {
+    if (value.listingType !== 'service') {
+      if (value.quantity === undefined) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Quantity is required', path: ['quantity'] });
+      }
+      if (value.unitId === undefined) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Unit is required', path: ['unitId'] });
+      }
+    }
   })
   .refine(
     (value) => {
@@ -86,6 +129,7 @@ export const updateListingSchema = z
     area: z.string().max(120).optional(),
     status: z.enum(['active', 'paused', 'closed', 'expired']).optional(),
     expiresAt: expiresAtField.optional(),
+    serviceMeta: serviceMetaField,
   })
   .refine((value) => Object.values(value).some((field) => field !== undefined), { message: 'No fields provided to update' });
 
