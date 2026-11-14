@@ -76,7 +76,7 @@ export function BannerCarousel({ ads }: { ads: AdBanner[] }) {
     if (ads.length <= 1) return;
     const timer = window.setInterval(() => setIndex((c) => (c + 1) % ads.length), ROTATE_MS);
     return () => window.clearInterval(timer);
-  }, [ads.length]);
+  }, [ads.length, index]);
 
   if (ads.length === 0) return null;
 
