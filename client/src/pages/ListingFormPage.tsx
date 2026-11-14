@@ -133,13 +133,21 @@ export function ListingFormPage() {
     const slice = accepted.slice(0, available);
     void (async () => {
       const selected: SelectedFile[] = [];
+      let skipped = 0;
       for (const file of slice) {
         const compressed = await compressImage(file);
+        if (!compressed) {
+          skipped += 1;
+          continue;
+        }
         const url = URL.createObjectURL(compressed);
         urlsRef.current.push(url);
         selected.push({ file: compressed, url });
       }
       setNewFiles((current) => [...current, ...selected]);
+      if (skipped > 0) {
+        showToast('بعض الصور بصيغة غير مدعومة (مثل HEIC). حوّلها إلى JPG ثم أعد المحاولة.', 'error');
+      }
     })();
     if (accepted.length > available) {
       showToast(`تمت إضافة ${available} صورة فقط. الحد الأقصى 5 صور.`, 'error');
