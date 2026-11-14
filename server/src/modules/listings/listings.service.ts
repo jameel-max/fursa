@@ -208,7 +208,7 @@ export async function listListings(filters: ListingFilters) {
 
   const items: ListingDetail[] = [];
   for (const row of rows) {
-    const images = await query<ListingImage>('SELECT id, image_url AS imageUrl, sort_order AS sortOrder FROM listing_images WHERE listing_id = ? ORDER BY sort_order ASC', [row.id]);
+    const images = await query<ListingImage>('SELECT id, image_url AS "imageUrl", sort_order AS "sortOrder" FROM listing_images WHERE listing_id = ? ORDER BY sort_order ASC', [row.id]);
     const owner = await buildOwner(row.user_id);
     const offerCount = Number((await query<{ total: number }>('SELECT COUNT(*) AS total FROM offers WHERE listing_id = ?', [row.id]))[0]?.total ?? 0);
     items.push({
@@ -259,7 +259,7 @@ export async function getListingById(id: number, viewerId: number | undefined) {
   }>('SELECT * FROM listings WHERE id = ?', [id]);
   if (!listing) throw notFound('LISTING_NOT_FOUND', 'Listing not found');
 
-  const images = await query<ListingImage>('SELECT id, image_url AS imageUrl, sort_order AS sortOrder FROM listing_images WHERE listing_id = ? ORDER BY sort_order ASC', [id]);
+  const images = await query<ListingImage>('SELECT id, image_url AS "imageUrl", sort_order AS "sortOrder" FROM listing_images WHERE listing_id = ? ORDER BY sort_order ASC', [id]);
   const owner = await buildOwner(listing.user_id);
   const offerCount = Number((await query<{ total: number }>('SELECT COUNT(*) AS total FROM offers WHERE listing_id = ?', [id]))[0]?.total ?? 0);
   const myReview = viewerId ? await getMyReviewForListing(viewerId, id) : null;
@@ -316,7 +316,7 @@ export async function listMyListings(userId: number, status: string) {
   }>('SELECT * FROM listings WHERE ' + conditions.join(' AND ') + ' ORDER BY updated_at DESC', params);
   const items: ListingDetail[] = [];
   for (const row of rows) {
-    const images = await query<ListingImage>('SELECT id, image_url AS imageUrl, sort_order AS sortOrder FROM listing_images WHERE listing_id = ? ORDER BY sort_order ASC', [row.id]);
+    const images = await query<ListingImage>('SELECT id, image_url AS "imageUrl", sort_order AS "sortOrder" FROM listing_images WHERE listing_id = ? ORDER BY sort_order ASC', [row.id]);
     const owner = await buildOwner(row.user_id);
     const offerCount = Number((await query<{ total: number }>('SELECT COUNT(*) AS total FROM offers WHERE listing_id = ?', [row.id]))[0]?.total ?? 0);
     items.push({

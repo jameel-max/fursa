@@ -96,7 +96,7 @@ export async function register(input: unknown): Promise<{ user: AuthUser; devCod
 
 export async function findAuthUserById(id: number): Promise<AuthUser> {
   const user = await queryOne<{ id: number; fullName: string; phone: string; accountStatus: string; role: string }>(
-    'SELECT id, full_name AS fullName, phone, account_status AS accountStatus, role FROM users WHERE id = ?',
+    'SELECT id, full_name AS "fullName", phone, account_status AS "accountStatus", role FROM users WHERE id = ?',
     [id],
   );
   if (!user) throw notFound('USER_NOT_FOUND', 'User not found');

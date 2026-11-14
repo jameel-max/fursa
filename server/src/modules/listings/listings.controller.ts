@@ -28,28 +28,26 @@ export const getListingHandler = asyncHandler(async (req: Request, res: Response
   return sendSuccess(res, data);
 });
 
-export const createListingHandler = asyncHandler(async (req: Request, res: Response) => {
+function filesToDataUrls(files: unknown): string[] {
   const imageUrls: string[] = [];
-  const files = req.files as Array<{ path?: string; originalname?: string; filename?: string }> | undefined;
   if (Array.isArray(files)) {
-    for (const file of files) {
-      const filename = file.filename || (file.path ? file.path.split(/[\\/]/).pop() : undefined);
-      if (filename) imageUrls.push(`/api/uploads/${filename}`);
+    for (const file of files as Array<{ buffer?: Buffer; mimetype?: string }>) {
+      if (file?.buffer && file.mimetype) {
+        imageUrls.push(`data:${file.mimetype};base64,${file.buffer.toString('base64')}`);
+      }
     }
   }
+  return imageUrls;
+}
+
+export const createListingHandler = asyncHandler(async (req: Request, res: Response) => {
+  const imageUrls = filesToDataUrls(req.files);
   const data = await listingsService.createListing(req.user!.id, req.body, imageUrls);
   return sendSuccess(res, data, 201);
 });
 
 export const updateListingHandler = asyncHandler(async (req: Request, res: Response) => {
-  const imageUrls: string[] = [];
-  const files = req.files as Array<{ path?: string; originalname?: string; filename?: string }> | undefined;
-  if (Array.isArray(files)) {
-    for (const file of files) {
-      const filename = file.filename || (file.path ? file.path.split(/[\\/]/).pop() : undefined);
-      if (filename) imageUrls.push(`/api/uploads/${filename}`);
-    }
-  }
+  const imageUrls = filesToDataUrls(req.files);
   const data = await listingsService.updateListing(req.user!.id, Number(req.params.id), req.body, imageUrls);
   return sendSuccess(res, data);
 });

@@ -11,6 +11,7 @@ import {
   UploadCloud,
 } from 'lucide-react';
 import { api } from '../lib/api';
+import { compressImage } from '../lib/image';
 import { flattenCategories, useCatalog } from '../lib/catalog';
 import { useToast } from '../context/ToastContext';
 import type { Listing, ListingImage, ListingType, PriceType } from '../types';
@@ -129,12 +130,17 @@ export function ListingFormPage() {
       showToast('يمكنك إضافة 5 صور كحد أقصى.', 'error');
       return;
     }
-    const selected = accepted.slice(0, available).map((file) => {
-      const url = URL.createObjectURL(file);
-      urlsRef.current.push(url);
-      return { file, url };
-    });
-    setNewFiles((current) => [...current, ...selected]);
+    const slice = accepted.slice(0, available);
+    void (async () => {
+      const selected: SelectedFile[] = [];
+      for (const file of slice) {
+        const compressed = await compressImage(file);
+        const url = URL.createObjectURL(compressed);
+        urlsRef.current.push(url);
+        selected.push({ file: compressed, url });
+      }
+      setNewFiles((current) => [...current, ...selected]);
+    })();
     if (accepted.length > available) {
       showToast(`تمت إضافة ${available} صورة فقط. الحد الأقصى 5 صور.`, 'error');
     }
